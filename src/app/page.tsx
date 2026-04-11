@@ -1,4 +1,5 @@
 import { Chapter, ChaptersResponse } from "@/types/quran";
+import Link from "next/link";
 
 async function getSurahs(): Promise<Chapter[]> {
   const response = await fetch("https://api.quran.com/api/v4/chapters", {
@@ -29,32 +30,34 @@ export default async function Home() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {surahs.map((surah) => (
-          <article
-            key={surah.id}
-            className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {surah.id}. {surah.name_simple}
-              </h2>
-              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                {surah.verses_count} ayahs
-              </span>
-            </div>
+          <Link href={`/surah/${surah.id}`} key={surah.id} className="block group">
+            <article
+              key={surah.id}
+              className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                  {surah.id}. {surah.name_simple}
+                </h2>
+                <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                  {surah.verses_count} ayahs
+                </span>
+              </div>
 
-            <p className="mt-2 text-2xl leading-relaxed text-zinc-900 dark:text-zinc-100">
-              {surah.name_arabic}
-            </p>
+              <p className="mt-2 text-2xl leading-relaxed text-zinc-900 dark:text-zinc-100" dir="rtl" >
+                {surah.name_arabic}
+              </p>
 
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-md bg-emerald-100 px-2 py-1 font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                {surah.revelation_place}
-              </span>
-              <span className="rounded-md bg-blue-100 px-2 py-1 font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                {surah.translated_name.name}
-              </span>
-            </div>
-          </article>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md bg-emerald-100 px-2 py-1 font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  {surah.revelation_place}
+                </span>
+                <span className="rounded-md bg-blue-100 px-2 py-1 font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                  {surah.translated_name.name}
+                </span>
+              </div>
+            </article>
+          </Link>
         ))}
       </section>
     </main>
