@@ -69,7 +69,7 @@ function FifteenLineGrid({
   return (
     <div
       dir="rtl"
-      className="grid h-full min-h-[800px] w-full grid-rows-15"
+      className="grid h-full min-h-200 w-full grid-rows-15"
       style={{ fontFamily: `p${pageNumber}` }}
     >
       {lines.slice(0, 15).map((line) => (
@@ -83,7 +83,7 @@ function FifteenLineGrid({
           }}
         >
           {line.type === "surah_name" ? (
-            <div className="relative flex w-full items-center justify-center py-3 text-[#a88d53]">
+            <div className="relative flex w-full items-center justify-center py-3 text-[#54948F]">
               <span
                 className="block w-full text-center text-6xl leading-none opacity-90"
                 style={{ fontFamily: "quran-common" }}
@@ -91,7 +91,7 @@ function FifteenLineGrid({
                 header
               </span>
               <span
-                className="absolute text-3xl leading-none"
+                className="absolute text-5xl leading-none"
                 style={{ fontFamily: "surah-name-v2" }}
               >
                 {`surah${String(Number(line.surah) || 0).padStart(3, "0")}`}
@@ -107,7 +107,7 @@ function FifteenLineGrid({
                 key={`${line.line}-${idx}`}
                 className="text-3xl leading-none"
                 style={{
-                  color: isAyahEndWord(line, idx) ? "#5f8a5a" : "#1f1f1f",
+                  color: word.isStopSign ? "#54948F" : "inherit",
                 }}
                 title={word.l}
               >
@@ -191,17 +191,7 @@ export default function MushafPageView() {
     >
       <QpcFontStyleRegistry cssText={fontCss} preloadPages={preloadPages} />
 
-      <div className="mx-auto w-full max-w-[1160px] px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-semibold sm:text-2xl">Mushaf View</h1>
-          <Link
-            href="/"
-            className="text-sm font-medium text-emerald-700 underline-offset-4 hover:underline"
-          >
-            Back to Home
-          </Link>
-        </header>
-
+      <div className="mx-auto w-full max-w-290 px-4 py-8 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait" initial={false}>
           <motion.section
             key={`${rightPage}-${leftPage}`}
@@ -217,12 +207,12 @@ export default function MushafPageView() {
             {pages.map((page) => (
               <article
                 key={page.pageNumber}
-                className="relative mx-auto w-full max-w-[550px] rounded-sm bg-[#fdfbf7] shadow-sm"
+                className="relative mx-auto w-full max-w-137.5 rounded-sm bg-[#fdfbf7] shadow-sm"
               >
                 <p className="mb-4 text-center text-xs font-medium text-zinc-500">
                   Page {page.pageNumber}
                 </p>
-                <div className="relative z-10 h-[calc(100dvh-200px)] min-h-[800px] w-full px-2 pb-4">
+                <div className="relative z-10 h-[calc(100dvh-200px)] min-h-200 w-full px-2 pb-4">
                   <FifteenLineGrid pageNumber={page.pageNumber} lines={page.lines} />
                 </div>
               </article>
@@ -235,7 +225,7 @@ export default function MushafPageView() {
       </div>
 
       <div className="pointer-events-none fixed inset-0 z-50">
-        <div className="relative mx-auto h-full w-full max-w-[1160px]">
+        <div className="relative mx-auto h-full w-full max-w-290">
           {nextPageHref ? (
             <Link
               href={nextPageHref}
