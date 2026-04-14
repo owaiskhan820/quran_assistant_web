@@ -1,28 +1,15 @@
-import { Chapter } from "@/types/quran";
+import { Chapter, Juz } from "@/types/quran";
 import HomeClient from "@/components/HomeClient";
-
-async function getChapters(): Promise<Chapter[]> {
-  const response = await fetch(
-    new URL("/data/chapters/chapters.json", process.env.ORIGIN || "http://localhost:3000"),
-    {
-      next: { revalidate: 86400 },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch chapters");
-  }
-
-  const data = await response.json();
-  return data.chapters;
-}
+import chaptersData from "../../public/data/chapters/chapters.json";
+import juzsData from "../../public/data/juzs.json";
 
 export default async function Home() {
-  const chapters = await getChapters();
+  const chapters = chaptersData.chapters as Chapter[];
+  const juzs = juzsData.juzs as Juz[];
   const alKahf = chapters.find((c) => c.id === 18);
 
   return (
-    <HomeClient chapters={chapters} alKahf={alKahf} />
+    <HomeClient chapters={chapters} alKahf={alKahf} juzs={juzs} />
   );
 }
 

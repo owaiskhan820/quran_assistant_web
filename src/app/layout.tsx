@@ -26,7 +26,7 @@ const notoSerif = Noto_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "The Sacred Library",
+  title: "Quran Kareem",
   description: "Browse and read the Quran",
 };
 
@@ -40,6 +40,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} ${notoSerif.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preload" href="/fonts/common/surah-name-v2.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/common/quran-common.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full flex flex-col bg-surface" suppressHydrationWarning>
         <Navbar />
         {children}

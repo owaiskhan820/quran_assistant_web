@@ -2,9 +2,8 @@
 
 @font-face {
   font-family: "quran-common";
-  src: url("https://static-cdn.tarteel.ai/qul/fonts/common/quran-common.ttf")
-    format("truetype");
-  font-display: swap;
+  src: url("/fonts/common/quran-common.woff2") format("woff2");
+  font-display: block;
 }
 
 :root {

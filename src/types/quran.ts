@@ -30,3 +30,23 @@ export interface VerseCodeV2 {
   code_v2: string;
   v2_page: number;
 }
+
+export interface JuzVerseMapping {
+  start_surah: number;
+  start_verse: number;
+  end_surah: number;
+  end_verse: number;
+}
+
+export interface Juz {
+  id: number;
+  juz: number;
+  name_english: string;
+  name_arabic: string;
+  verses_count: number;
+  verse_mapping: JuzVerseMapping;
+}
+
+export interface JuzsResponse {
+  juzs: Juz[];
+}

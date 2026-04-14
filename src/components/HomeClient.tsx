@@ -2,17 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Chapter } from "@/types/quran";
+import { Chapter, Juz } from "@/types/quran";
 import SearchIcon from "@/components/icons/SearchIcon";
 import FilterMenu from "@/components/FilterMenu";
 import Footer from "@/components/Footer";
+import JuzGrid from "@/components/JuzGrid";
 
 interface HomeClientProps {
   chapters: Chapter[];
   alKahf: Chapter | undefined;
+  juzs: Juz[];
 }
 
-export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
+// Fixed page mappings for Juz navigation
+const JUZ_START_PAGES = [1, 22, 42, 62, 82, 102, 122, 142, 162, 182, 202, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
+
+export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) {
   const [showAll, setShowAll] = useState(false);
   const [activeTab, setActiveTab] = useState<"surah" | "juz">("surah");
   const displayedChapters = showAll ? chapters : chapters.slice(0, 9);
@@ -42,12 +47,12 @@ export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
       
       <div className="relative z-10 flex-1">
         {/* Hero Section */}
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="space-y-8 text-center">
+        <section className="mx-auto max-w-6xl px-4 pt-8 pb-4 sm:px-6 lg:px-8">
+          <div className="space-y-6 text-center">
             {/* Title */}
             <div className="space-y-4">
               <h1 className="font-serif text-5xl sm:text-6xl font-bold text-primary leading-tight">
-                The Sacred Library
+                The Sacred Quran Library
               </h1>
               <p className="text-lg text-gray-600 mx-auto">
                 Explore the beauty of the Quran with translations and detailed explanations
@@ -69,29 +74,40 @@ export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
         </section>
 
         {/* Filter Menu */}
-        <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
           <FilterMenu activeTab={activeTab} onTabChange={setActiveTab} />
         </section>
 
         {/* Continue Reading Banner */}
-        {alKahf && activeTab === "surah" && (
-          <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {alKahf && (
+          <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
             <Link href={`/page/${alKahf.pages[0]}`}>
               <div 
-                className="relative overflow-hidden rounded-2xl p-12 sm:p-16 shadow-lg hover:shadow-xl transition bg-cover bg-center"
+                className="relative overflow-hidden rounded-2xl p-8 sm:p-12 shadow-lg hover:shadow-xl transition bg-cover bg-center"
                 style={{
                   backgroundImage: "url('/resources/banner.png')",
                 }}
               >
+                {/* Green gradient overlay from left to right */}
+                <div 
+                  className="absolute inset-0 rounded-2xl"
+                  style={{
+                    background: "linear-gradient(to right, rgba(0, 83, 84, 0.6), transparent)"
+                  }}
+                ></div>
                 {/* Dark overlay for text readability */}
-                <div className="absolute inset-0 bg-black/40 rounded-2xl"></div>
+                <div className="absolute inset-0 bg-black/20 rounded-2xl"></div>
                 
-                <div className="relative space-y-2">
-                  <p className="text-sm font-medium text-white/90">Continue Reading</p>
-                  <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white">
-                    {alKahf.name_simple}
+                <div className="relative space-y-4 max-w-2xl">
+                  <h2 className="text-4xl sm:text-5xl font-serif font-bold text-white leading-tight">
+                    Continue Reading
                   </h2>
-                  <p className="text-white/95 text-lg">{alKahf.translated_name.name}</p>
+                  <p className="text-base sm:text-lg text-white/90 leading-relaxed">
+                    Pick up where you left off
+                  </p>
+                  <button className="inline-block px-6 py-2 bg-white text-primary font-semibold rounded-full hover:bg-primary hover:text-white transition-colors duration-300">
+                    Resume 
+                  </button>
                 </div>
               </div>
             </Link>
@@ -100,7 +116,7 @@ export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
 
         {/* Surah Grid */}
         {activeTab === "surah" && (
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayedChapters.map((chapter) => (
               <Link 
@@ -110,7 +126,7 @@ export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
               >
                 <div className="flex items-center gap-6 p-6 rounded-xl bg-white border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300">
                   {/* Chapter Number Circle */}
-                  <div className="flex-shrink-0 w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-300">
+                  <div className="shrink-0 w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-300">
                     <span className="text-2xl font-serif font-bold text-primary">
                       {chapter.id}
                     </span>
@@ -127,7 +143,7 @@ export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
                   </div>
 
                   {/* Right Side - Arabic Name and Ayahs */}
-                  <div className="flex-shrink-0 text-right">
+                  <div className="shrink-0 text-right">
                     <div className="text-lg font-serif font-bold text-primary mb-1" dir="rtl">
                       {chapter.name_arabic}
                     </div>
@@ -154,12 +170,10 @@ export default function HomeClient({ chapters, alKahf }: HomeClientProps) {
         </section>
         )}
 
-        {/* Juz view coming soon */}
+        {/* Juz Grid */}
         {activeTab === "juz" && (
-          <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">Juz view coming soon</p>
-            </div>
+          <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+            <JuzGrid juzs={juzs} juzStartPages={JUZ_START_PAGES} />
           </section>
         )}
       </div>
