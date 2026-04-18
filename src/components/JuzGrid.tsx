@@ -1,5 +1,4 @@
-"use client";
-
+import { useState } from "react";
 import Link from "next/link";
 
 interface JuzData {
@@ -22,54 +21,70 @@ interface JuzGridProps {
 }
 
 export default function JuzGrid({ juzs, juzStartPages }: JuzGridProps) {
+  const [showAll, setShowAll] = useState(false);
 
   // Filter duplicates - keep only unique Juz numbers (1-30)
   const uniqueJuzs = Array.from(
     new Map(juzs.map((juz) => [juz.juz, juz])).values()
   ).sort((a, b) => a.juz - b.juz);
 
+  const displayedJuzs = showAll ? uniqueJuzs : uniqueJuzs.slice(0, 12);
+
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {uniqueJuzs.map((juz, index) => {
-        const startPage = juzStartPages[index];
+    <div className="space-y-12">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {displayedJuzs.map((juz, index) => {
+          const startPage = juzStartPages[index];
 
-        return (
-          <Link
-            href={`/page/${startPage}`}
-            key={juz.juz}
-            className="group"
+          return (
+            <Link
+              href={`/page/${startPage}`}
+              key={juz.juz}
+              className="group"
+            >
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-white border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300 min-h-[100px]">
+                {/* Center Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900 leading-tight">
+                    Juz {juz.juz}
+                  </h3>
+                </div>
+
+                {/* Right Side - Arabic Name and Page */}
+                <div className="shrink-0 text-right flex flex-col justify-center items-end">
+                  <div
+                    className="text-2xl leading-none text-primary"
+                    style={{
+                      fontFamily: 'QuranCommon',
+                      fontVariantLigatures: 'common-ligatures',
+                      fontFeatureSettings: '"liga" on',
+                      textRendering: 'optimizeLegibility'
+                    }}
+                    dir="ltr"
+                  >
+                    {`j${juz.juz.toString().padStart(3, "0")}`}
+                  </div>
+                  <div className="text-sm text-gray-400 font-medium uppercase tracking-wide mt-1">
+                    Page {startPage}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* View All Button */}
+      {!showAll && uniqueJuzs.length > 12 && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowAll(true)}
+            className="px-8 py-3 rounded-full bg-primary text-white font-semibold hover:bg-primary/90 transition-colors duration-300 shadow-md hover:shadow-lg"
           >
-            <div className="flex items-center gap-6 p-6 rounded-xl bg-white border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300">
-              {/* Juz Number Circle */}
-              <div className="shrink-0 w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-300">
-                <span className="text-2xl font-serif font-bold text-primary">
-                  {juz.juz}
-                </span>
-              </div>
-
-              {/* Center Content */}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-gray-900 leading-tight">
-                  Juz {juz.juz}
-                </h3>
-                <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">
-                  {juz.verses_count} Verses
-                </p>
-              </div>
-
-              {/* Right Side - Arabic Name and Page */}
-              <div className="shrink-0 text-right">
-                <div className="text-lg font-serif font-bold text-primary mb-1" dir="rtl">
-                  {juz.name_arabic}
-                </div>
-                <div className="text-sm text-gray-500 font-medium uppercase tracking-wide">
-                  Page {startPage}
-                </div>
-              </div>
-            </div>
-          </Link>
-        );
-      })}
+            View All Juz
+          </button>
+        </div>
+      )}
     </div>
   );
 }

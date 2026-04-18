@@ -143,11 +143,15 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                   </div>
 
                   {/* Right Side - Arabic Name and Ayahs */}
-                  <div className="shrink-0 text-right">
-                    <div className="text-lg font-serif font-bold text-primary mb-1" dir="rtl">
-                      {chapter.name_arabic}
+                  <div className="shrink-0 text-right flex flex-col justify-center items-end">
+                    <div 
+                      className="text-3xl leading-none text-primary" 
+                      style={{ fontFamily: 'surah-name-v2' }}
+                      dir="ltr"
+                    >
+                      {`surah${chapter.id.toString().padStart(3, "0")}`}
                     </div>
-                    <div className="text-sm text-gray-500 font-medium uppercase tracking-wide">
+                    <div className="text-sm text-gray-500 font-medium uppercase tracking-wide mt-1">
                       {chapter.verses_count} AYAHS
                     </div>
                   </div>

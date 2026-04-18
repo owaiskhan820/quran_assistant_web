@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans, Noto_Serif } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
+import chaptersData from "../../public/data/chapters/chapters.json";
+import juzsData from "../../public/data/juzs.json";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,7 +47,7 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/common/quran-common.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col bg-surface" suppressHydrationWarning>
-        <Navbar />
+        <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
         {children}
       </body>
     </html>

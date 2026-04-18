@@ -34,7 +34,11 @@ function FifteenLineGrid({
       <div className="flex w-full items-center justify-center py-6 text-black">
         <span
           className="text-[1.75em] leading-none"
-          style={{ fontFamily: "quran-common" }}
+          style={{ 
+            fontFamily: "QuranCommon",
+            fontVariantLigatures: "common-ligatures",
+            fontFeatureSettings: '"liga" on'
+          }}
         >
           ﷽
         </span>
@@ -62,7 +66,11 @@ function FifteenLineGrid({
             <div className="relative flex w-full items-center justify-center py-3 text-[#54948F]">
               <span
                 className="block w-full text-center text-6xl leading-none opacity-90"
-                style={{ fontFamily: "quran-common" }}
+                style={{ 
+            fontFamily: "QuranCommon",
+            fontVariantLigatures: "common-ligatures",
+            fontFeatureSettings: '"liga" on'
+          }}
               >
                 header
               </span>

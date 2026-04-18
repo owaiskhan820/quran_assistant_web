@@ -32,9 +32,10 @@ async function getPageLines(pageNumber: number): Promise<MushafLine[]> {
 export default async function MushafPage({
   params,
 }: {
-  params: { pageNumber: string };
+  params: Promise<{ pageNumber: string }>;
 }) {
-  const currentFromUrl = Number.parseInt(params.pageNumber ?? "1", 10);
+  const resolvedParams = await params;
+  const currentFromUrl = Number.parseInt(resolvedParams.pageNumber ?? "1", 10);
   const safeCurrent = Number.isInteger(currentFromUrl) ? currentFromUrl : 1;
   const boundedCurrent = Math.min(604, Math.max(1, safeCurrent));
 
