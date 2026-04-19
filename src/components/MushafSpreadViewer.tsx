@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
+import { useAudio } from "@/hooks/useAudio";
 import type { MushafLine } from "@/types/mushaf";
-import { getJuzForPage, getJuzNameArabic } from "@/utils/juz";
+import { getJuzForPage } from "@/utils/juz";
 import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
 
 function buildPageFontCss(pageNumbers: number[]): string {
@@ -29,12 +30,26 @@ const toArabicDigits = (num: number) => {
   return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
 };
 
+function getWordAudioUrl(location: string): string | null {
+  if (!location) return null;
+  const parts = location.split(":");
+  if (parts.length !== 3) return null;
+  const [s, a, w] = parts.map((n) => n.padStart(3, "0"));
+  return `https://audio.qurancdn.com/wbw/${s}_${a}_${w}.mp3`;
+}
+
 function FifteenLineGrid({
   pageNumber,
   lines,
+  audioData,
+  playAudio,
+  activeId,
 }: {
   pageNumber: number;
   lines: MushafLine[];
+  audioData: any;
+  playAudio: (url: string, id: string) => void;
+  activeId: string | null;
 }) {
   function Basmalah() {
     return (
@@ -105,20 +120,53 @@ function FifteenLineGrid({
           ) : line.words.length === 0 ? (
             <div className="h-full w-full" />
           ) : (
-            line.words.map((word, idx) => (
-              <span
-                key={`${line.line}-${idx}`}
-                className="leading-none font-normal
-                          text-[clamp(1.35rem,5.5vw,1.75rem)]  /* Mobile-Default */
-                          lg:text-[1.75rem]"                /* Desktop-Canonical */
-                style={{
-                  color: word.isStopSign ? "var(--primary)" : "inherit",
-                }}
-                title={word.l}
-              >
-                {word.c}
-              </span>
-            ))
+            line.words.map((word, idx) => {
+              const ayahAudio = audioData?.verseAudio?.[`${word.s}:${word.a}`];
+              const isWordActive = activeId === word.l;
+              const isAyahActive = activeId === `${word.s}:${word.a}`;
+              const isActive = isWordActive || (word.isStopSign && isAyahActive);
+              
+              const handlePlay = () => {
+                if (word.isStopSign && ayahAudio) {
+                  playAudio(ayahAudio, `${word.s}:${word.a}`);
+                } else if (!word.isStopSign) {
+                  const url = getWordAudioUrl(word.l);
+                  if (url) playAudio(url, word.l);
+                }
+              };
+
+              return (
+                <div
+                  key={`${line.line}-${idx}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={handlePlay}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handlePlay();
+                    }
+                  }}
+                  className={`
+                    leading-none font-normal cursor-pointer transition-all duration-300
+                    text-[clamp(1.35rem,5.5vw,1.75rem)]  /* Mobile-Default */
+                    lg:text-[1.75rem]                /* Desktop-Canonical */
+                    rounded-sm px-0.5 py-1 -mx-0.5
+                    ${isActive 
+                      ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20" 
+                      : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
+                  `}
+                  style={{
+                    color: isActive 
+                      ? "var(--primary)" 
+                      : (word.isStopSign ? "var(--primary)" : "inherit"),
+                    opacity: isActive ? 1 : (word.isStopSign ? 0.7 : 1),
+                  }}
+                  title={word.l}
+                >
+                  {word.c}
+                </div>
+              );
+            })
           )}
         </div>
       ))}
@@ -142,6 +190,54 @@ export default function MushafSpreadViewer({
   leftLines,
 }: MushafSpreadViewerProps) {
   const router = useRouter();
+  const { playAudio, activeId } = useAudio();
+  const [audioData, setAudioData] = useState<{
+    verseAudio: Record<string, string>;
+  }>({ verseAudio: {} });
+
+  useEffect(() => {
+    async function fetchAudioDataForPage(page: number) {
+      try {
+        const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${page}?recitation=7&audio=7`);
+        const data = await res.json();
+        
+        const newVerseAudio: Record<string, string> = {};
+
+        data.verses.forEach((verse: any) => {
+          // Map Ayah Audio
+          if (verse.audio?.url) {
+            // Prefix with https: if the API returns a relative protocol //audio...
+            const ayahUrl = verse.audio.url.startsWith("http") 
+              ? verse.audio.url 
+              : `https:${verse.audio.url}`;
+            newVerseAudio[verse.verse_key] = ayahUrl;
+          }
+        });
+
+        console.log(`Verse audio data fetched for page ${page}:`, Object.keys(newVerseAudio).length, "verses");
+        return { newVerseAudio };
+      } catch (error) {
+        console.error(`Failed to fetch audio for page ${page}:`, error);
+        return { newVerseAudio: {} };
+      }
+    }
+
+    async function loadAllAudio() {
+      console.log("Loading verse audio for pages:", rightPage, leftPage);
+      const results = await Promise.all([
+        fetchAudioDataForPage(rightPage),
+        fetchAudioDataForPage(leftPage)
+      ]);
+
+      setAudioData({
+        verseAudio: { ...results[0].newVerseAudio, ...results[1].newVerseAudio }
+      });
+      console.log("Audio data state updated.");
+    }
+
+    loadAllAudio();
+  }, [rightPage, leftPage]);
+
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
@@ -284,14 +380,23 @@ export default function MushafSpreadViewer({
 
                   {/* Surah Name on the Left */}
                   <div
-                    className="flex-1 text-left text-xl leading-none text-primary/80 select-none pb-1"
-                    style={{
-                      fontFamily: 'surah-name-v3',
-                      textRendering: 'optimizeLegibility',
-                    }}
+                    className="flex-1 flex justify-end items-center gap-2 text-xl leading-none text-primary/80 select-none pb-1"
                     dir="rtl"
                   >
-                    سُورَةُ {getSurahNameArabic(getSurahForPage(page.lines))}
+                    <div style={{ fontFamily: 'surah-name-v3', textRendering: 'optimizeLegibility' }}>
+                      سُورَةُ {getSurahNameArabic(getSurahForPage(page.lines))}
+                    </div>
+                    <button
+                      className="lg:hidden p-1 text-muted hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-side-menu'))}
+                      aria-label="Open side menu"
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 
@@ -299,7 +404,13 @@ export default function MushafSpreadViewer({
                 <div className="mx-2 lg:mx-8 mb-3 border-t border-divider" />
 
                 <div className="relative z-10 flex-1 w-full px-2 lg:px-8 pb-2 overflow-hidden select-none">
-                  <FifteenLineGrid pageNumber={page.pageNumber} lines={page.lines} />
+                  <FifteenLineGrid 
+                    pageNumber={page.pageNumber} 
+                    lines={page.lines}
+                    audioData={audioData}
+                    playAudio={playAudio}
+                    activeId={activeId}
+                  />
                 </div>
 
                 {/* Arabic Page Number at Bottom */}
