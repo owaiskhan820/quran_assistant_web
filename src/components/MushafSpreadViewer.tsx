@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
 import type { MushafLine } from "@/types/mushaf";
+import { getJuzForPage, getJuzNameArabic } from "@/utils/juz";
+import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
 
 function buildPageFontCss(pageNumbers: number[]): string {
   const uniquePages = [...new Set(pageNumbers)].sort((a, b) => a - b);
@@ -22,6 +24,10 @@ function buildPageFontCss(pageNumbers: number[]): string {
   return `${specialFonts}\n${pageFonts}`;
 }
 
+const toArabicDigits = (num: number) => {
+  return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
+};
+
 function FifteenLineGrid({
   pageNumber,
   lines,
@@ -31,10 +37,10 @@ function FifteenLineGrid({
 }) {
   function Basmalah() {
     return (
-      <div className="flex w-full items-center justify-center py-6 text-black">
+      <div className="flex w-full items-center justify-center py-2 text-black">
         <span
           className="text-[1.75em] leading-none"
-          style={{ 
+          style={{
             fontFamily: "QuranCommon",
             fontVariantLigatures: "common-ligatures",
             fontFeatureSettings: '"liga" on'
@@ -46,13 +52,19 @@ function FifteenLineGrid({
     );
   }
 
+  const linesToRender = lines.slice(0, 15);
+  const isShortPage = linesToRender.length < 15;
+
   return (
     <div
       dir="rtl"
-      className="grid h-full min-h-200 w-full grid-rows-15"
+      className={isShortPage
+        ? "flex flex-col justify-center h-full w-full gap-5 py-12"
+        : "grid h-full w-full grid-rows-15"
+      }
       style={{ fontFamily: `p${pageNumber}` }}
     >
-      {lines.slice(0, 15).map((line) => (
+      {linesToRender.map((line) => (
         <div
           key={line.line}
           className="flex min-w-0 flex-row items-center px-4"
@@ -63,19 +75,19 @@ function FifteenLineGrid({
           }}
         >
           {line.type === "surah_name" ? (
-            <div className="relative flex w-full items-center justify-center py-3 text-[#54948F]">
+            <div className="relative flex w-full items-center justify-center py-1 text-[#54948F]">
               <span
-                className="block w-full text-center text-6xl leading-none opacity-90"
-                style={{ 
-            fontFamily: "QuranCommon",
-            fontVariantLigatures: "common-ligatures",
-            fontFeatureSettings: '"liga" on'
-          }}
+                className="block w-full text-center text-5xl leading-none opacity-90"
+                style={{
+                  fontFamily: "QuranCommon",
+                  fontVariantLigatures: "common-ligatures",
+                  fontFeatureSettings: '"liga" on'
+                }}
               >
                 header
               </span>
               <span
-                className="absolute text-5xl leading-none"
+                className="absolute text-4xl leading-none"
                 style={{ fontFamily: "surah-name-v2" }}
               >
                 {`surah${String(Number(line.surah) || 0).padStart(3, "0")}`}
@@ -89,9 +101,9 @@ function FifteenLineGrid({
             line.words.map((word, idx) => (
               <span
                 key={`${line.line}-${idx}`}
-                className="text-3xl leading-none"
+                className="text-[1.75rem] leading-none font-normal"
                 style={{
-                  color: word.isStopSign ? "#54948F" : "inherit",
+                  color: word.isStopSign ? "#005354" : "inherit",
                 }}
                 title={word.l}
               >
@@ -169,12 +181,19 @@ export default function MushafSpreadViewer({
 
   return (
     <main
-      className="min-h-screen bg-[#fdfbf7] text-[#1f1f1f] overflow-hidden"
+      className="h-[100dvh] w-screen bg-white text-[#1f1f1f] overflow-hidden flex flex-col items-center justify-center p-0 lg:p-4"
       style={{ perspective: "2500px" }}
     >
+      <style jsx global>{`
+        body {
+          overflow: hidden !important;
+          height: 100dvh !important;
+          touch-action: none;
+        }
+      `}</style>
       <QpcFontStyleRegistry cssText={fontCss} preloadPages={preloadPages} />
 
-      <div className="mx-auto w-full max-w-290 px-4 py-8 sm:px-6 lg:px-8 relative">
+      <div className="w-full max-w-[280dvh] flex-1 flex items-center justify-center relative">
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
           <motion.section
             key={`${rightPage}-${leftPage}`}
@@ -190,22 +209,56 @@ export default function MushafSpreadViewer({
             }}
             style={{ transformStyle: "preserve-3d" }}
             dir="rtl"
-            className="flex flex-col lg:flex-row gap-6 w-full origin-center relative"
+            className="flex flex-col lg:flex-row gap-0 w-full h-[85dvh] max-h-[85dvh] origin-center relative items-center justify-center"
           >
             {/* The Spine shadow */}
-            <div className="pointer-events-none absolute inset-y-6 left-1/2 hidden w-2 -translate-x-1/2 rounded-full bg-zinc-600/10 shadow-[0_0_18px_10px_rgba(24,24,27,0.16)] lg:block z-10" />
+            <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1px] -translate-x-1/2 bg-zinc-200/50 shadow-[0_0_20px_10px_rgba(0,83,84,0.08)] lg:block z-20" />
 
             {pages.map((page) => (
               <article
                 key={page.pageNumber}
                 style={{ backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
-                className="relative mx-auto w-full max-w-137.5 rounded-sm bg-[#fdfbf7] shadow-sm flex-1"
+                className="relative mx-0 w-full max-w-137.5 rounded-sm bg-white shadow-[0_0_40px_rgba(0,83,84,0.16)] border border-primary/10 flex-1 h-full flex flex-col pt-3 pb-1"
               >
-                <p className="mb-4 text-center text-xs font-medium text-zinc-500">
-                  Page {page.pageNumber}
-                </p>
-                <div className="relative z-10 h-[calc(100dvh-200px)] min-h-200 w-full px-2 pb-4">
+                {/* Header Slot (Upcoming Surah/Juz names) */}
+                <div className="h-8 w-full flex items-center justify-between px-8 text-xs font-medium text-zinc-400">
+                  {/* Juz Name on the Right - Reverted to calligraphic icons */}
+                  <div
+                    className="flex-1 text-right text-xl leading-none text-primary/80 select-none"
+                    style={{
+                      fontFamily: 'QuranCommon',
+                      fontVariantLigatures: 'common-ligatures',
+                      fontFeatureSettings: '"liga" on',
+                      textRendering: 'optimizeLegibility',
+                    }}
+                    dir="ltr"
+                  >
+                    {`j${getJuzForPage(page.lines).toString().padStart(3, "0")}`}
+                  </div>
+
+                  {/* Surah Name on the Left */}
+                  <div
+                    className="flex-1 text-left text-xl leading-none text-primary/80 select-none pb-1"
+                    style={{
+                      fontFamily: 'surah-name-v3',
+                      textRendering: 'optimizeLegibility',
+                    }}
+                    dir="rtl"
+                  >
+                    سُورَةُ {getSurahNameArabic(getSurahForPage(page.lines))}
+                  </div>
+                </div>
+
+                {/* Keyline Divider */}
+                <div className="mx-8 mb-3 border-t border-zinc-200" />
+
+                <div className="relative z-10 flex-1 w-full px-8 pb-2 overflow-hidden select-none">
                   <FifteenLineGrid pageNumber={page.pageNumber} lines={page.lines} />
+                </div>
+
+                {/* Arabic Page Number at Bottom */}
+                <div className="mt-auto py-1 flex items-center justify-center text-xl font-medium text-primary opacity-70" style={{ fontFamily: "" }}>
+                  {toArabicDigits(page.pageNumber)}
                 </div>
               </article>
             ))}
@@ -213,27 +266,25 @@ export default function MushafSpreadViewer({
         </AnimatePresence>
       </div>
 
-      <div className="pointer-events-none fixed inset-0 z-50">
-        <div className="relative mx-auto h-full w-full max-w-290">
-          {nextPageHref ? (
-            <Link
-              href={nextPageHref}
-              className="pointer-events-auto absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-300/80 bg-[#fdfbf7] px-4 py-2 text-3xl font-semibold text-zinc-800 shadow-lg hover:bg-[#f7f2e8] transition-transform active:scale-95"
-              aria-label="Next spread"
-            >
-              ‹
-            </Link>
-          ) : null}
-          {previousPageHref ? (
-            <Link
-              href={previousPageHref}
-              className="pointer-events-auto absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-300/80 bg-[#fdfbf7] px-4 py-2 text-3xl font-semibold text-zinc-800 shadow-lg hover:bg-[#f7f2e8] transition-transform active:scale-95"
-              aria-label="Previous spread"
-            >
-              ›
-            </Link>
-          ) : null}
-        </div>
+      <div className="pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-50 flex items-center justify-between w-full max-w-[1400px] mx-auto px-6 sm:px-12">
+        {nextPageHref ? (
+          <Link
+            href={nextPageHref}
+            className="pointer-events-auto rounded-2xl border border-zinc-200 bg-white/90 backdrop-blur-md px-4 py-12 text-4xl font-semibold text-zinc-800 shadow-2xl hover:bg-primary hover:text-white hover:border-primary hover:scale-105 transition-all active:scale-95 flex items-center justify-center min-w-[64px]"
+            aria-label="Next spread"
+          >
+            ‹
+          </Link>
+        ) : <div />}
+        {previousPageHref ? (
+          <Link
+            href={previousPageHref}
+            className="pointer-events-auto rounded-2xl border border-zinc-200 bg-white/90 backdrop-blur-md px-4 py-12 text-4xl font-semibold text-zinc-800 shadow-2xl hover:bg-primary hover:text-white hover:border-primary hover:scale-105 transition-all active:scale-95 flex items-center justify-center min-w-[64px]"
+            aria-label="Previous spread"
+          >
+            ›
+          </Link>
+        ) : <div />}
       </div>
     </main>
   );

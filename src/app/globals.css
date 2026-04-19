@@ -12,6 +12,12 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: "surah-name-v3";
+  src: url("/fonts/common/UthmanicHafs_V22.woff2") format("woff2");
+  font-display: block;
+}
+
 :root {
   --background: #f8fafb;
   --foreground: #171717;
