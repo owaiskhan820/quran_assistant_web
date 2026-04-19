@@ -42,10 +42,10 @@ export default function JuzGrid({ juzs, juzStartPages }: JuzGridProps) {
               key={juz.juz}
               className="group"
             >
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300 min-h-[100px]">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-surface border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300 min-h-[100px]">
                 {/* Center Content */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-gray-900 leading-tight">
+                  <h3 className="text-lg font-semibold text-foreground leading-tight">
                     Juz {juz.juz}
                   </h3>
                 </div>
@@ -64,7 +64,7 @@ export default function JuzGrid({ juzs, juzStartPages }: JuzGridProps) {
                   >
                     {`j${juz.juz.toString().padStart(3, "0")}`}
                   </div>
-                  <div className="text-sm text-gray-400 font-medium uppercase tracking-wide mt-1">
+                  <div className="text-sm text-muted font-medium uppercase tracking-wide mt-1">
                     Page {startPage}
                   </div>
                 </div>

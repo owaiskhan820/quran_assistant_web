@@ -54,19 +54,19 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
               <h1 className="font-serif text-5xl sm:text-6xl font-bold text-primary leading-tight">
                 The Sacred Quran Library
               </h1>
-              <p className="text-lg text-gray-600 mx-auto">
+              <p className="text-lg text-muted mx-auto">
                 Explore the beauty of the Quran with translations and detailed explanations
               </p>
             </div>
 
             {/* Search Bar */}
             <div className="relative max-w-2xl mx-auto w-full">
-              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-white border-2 border-primary/20 shadow-sm hover:border-primary/40 transition">
+              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-surface border-2 border-primary/20 shadow-sm hover:border-primary/40 transition">
                 <SearchIcon />
                 <input
                   type="text"
                   placeholder="Search by chapter name or number..."
-                  className="flex-1 bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                  className="flex-1 bg-transparent outline-none text-foreground/80 placeholder-muted"
                 />
               </div>
             </div>
@@ -80,7 +80,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
 
         {/* Continue Reading Banner */}
         {alKahf && (
-          <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
+          <section className="hidden md:block mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
             <Link href={`/page/${alKahf.pages[0]}`}>
               <div 
                 className="relative overflow-hidden rounded-2xl p-8 sm:p-12 shadow-lg hover:shadow-xl transition bg-cover bg-center"
@@ -92,7 +92,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                 <div 
                   className="absolute inset-0 rounded-2xl"
                   style={{
-                    background: "linear-gradient(to right, rgba(0, 83, 84, 0.6), transparent)"
+                    background: "linear-gradient(to right, rgba(var(--primary-rgb), 0.6), transparent)"
                   }}
                 ></div>
                 {/* Dark overlay for text readability */}
@@ -105,7 +105,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                   <p className="text-base sm:text-lg text-white/90 leading-relaxed">
                     Pick up where you left off
                   </p>
-                  <button className="inline-block px-6 py-2 bg-white text-primary font-semibold rounded-full hover:bg-primary hover:text-white transition-colors duration-300">
+                  <button className="inline-block px-6 py-2 bg-surface text-primary font-semibold rounded-full hover:bg-primary hover:text-white transition-colors duration-300">
                     Resume 
                   </button>
                 </div>
@@ -124,9 +124,9 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                 key={chapter.id}
                 className="group"
               >
-                <div className="flex items-center gap-6 p-6 rounded-xl bg-white border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300">
+                <div className="flex items-center gap-6 p-6 rounded-xl bg-surface border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300">
                   {/* Chapter Number Circle */}
-                  <div className="shrink-0 w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-300">
+                  <div className="shrink-0 w-16 h-16 rounded-full bg-background flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-300">
                     <span className="text-2xl font-serif font-bold text-primary">
                       {chapter.id}
                     </span>
@@ -134,10 +134,10 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
 
                   {/* Center Content */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 leading-tight">
+                    <h3 className="text-lg font-semibold text-foreground leading-tight">
                       {chapter.name_simple}
                     </h3>
-                    <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">
+                    <p className="text-sm text-muted font-medium uppercase tracking-wide">
                       {chapter.translated_name.name}
                     </p>
                   </div>
@@ -151,7 +151,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                     >
                       {`surah${chapter.id.toString().padStart(3, "0")}`}
                     </div>
-                    <div className="text-sm text-gray-500 font-medium uppercase tracking-wide mt-1">
+                    <div className="text-sm text-muted font-medium uppercase tracking-wide mt-1">
                       {chapter.verses_count} AYAHS
                     </div>
                   </div>

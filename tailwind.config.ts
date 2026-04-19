@@ -9,13 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#005354",
-        surface: "#f8fafb",
-        "surface-container-lowest": "#ffffff",
-        "surface-container-low": "#f3f7f8",
-        "surface-container": "#eef2f3",
-        "surface-container-high": "#e8ecef",
-        "surface-container-highest": "#e2e6e9",
+        primary: "rgb(var(--primary-rgb) / <alpha-value>)",
+        secondary: "rgb(var(--secondary-rgb) / <alpha-value>)",
+        muted: "rgb(var(--muted-rgb) / <alpha-value>)",
+        "muted-dark": "rgb(var(--muted-dark-rgb) / <alpha-value>)",
+        divider: "rgb(var(--divider-rgb) / <alpha-value>)",
+        background: "rgb(var(--background-rgb) / <alpha-value>)",
+        surface: "rgb(var(--surface-rgb) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],

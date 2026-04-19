@@ -15,7 +15,7 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-gray-100">
+      <header className="hidden md:block sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-gray-100">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <button

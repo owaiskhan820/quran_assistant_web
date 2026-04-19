@@ -20,18 +20,35 @@
 
 :root {
   --background: #f8fafb;
+  --background-rgb: 248, 250, 251;
   --foreground: #171717;
+  --foreground-rgb: 23, 23, 23;
   --primary: #005354;
+  --primary-rgb: 0, 83, 84;
+  --secondary: #005354;
+  --secondary-rgb: 0, 83, 84;
+  --muted: #a1a1aa;
+  --muted-rgb: 161, 161, 170;
+  --muted-dark: #27272a;
+  --muted-dark-rgb: 39, 39, 42;
+  --divider: #e4e4e7;
+  --divider-rgb: 228, 228, 231;
+  --surface: #ffffff;
+  --surface-rgb: 255, 255, 255;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plus-jakarta);
-  --font-geist-sans: var(--font-geist-sans);
-  --font-serif: var(--font-noto-serif);
-  --font-mono: var(--font-geist-mono);
   --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-dark: var(--muted-dark);
+  --color-divider: var(--divider);
+  --color-surface: var(--surface);
+
+  --font-sans: var(--font-plus-jakarta);
+  --font-serif: var(--font-noto-serif);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,8 +64,11 @@ body {
   font-family: var(--font-plus-jakarta, "Plus Jakarta Sans", sans-serif);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-noto-serif, "Noto Serif", serif);
 }
-
-

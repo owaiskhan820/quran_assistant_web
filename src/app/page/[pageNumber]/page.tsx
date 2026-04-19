@@ -46,11 +46,6 @@ export default async function MushafPage({
 
   const rightPage = getRightPage(boundedCurrent);
 
-  // If the user navigates directly to a left page, redirect them to the start of the spread (right page)
-  if (boundedCurrent !== rightPage) {
-    redirect(`/page/${rightPage}`);
-  }
-
   const leftPage = rightPage + 1 <= 604 ? rightPage + 1 : rightPage;
 
   // Retrieve data natively on the server without any HTTP fetch delay
@@ -61,6 +56,7 @@ export default async function MushafPage({
 
   return (
     <MushafSpreadViewer
+      requestedPage={boundedCurrent}
       rightPage={rightPage}
       leftPage={leftPage}
       rightLines={rightLines}
