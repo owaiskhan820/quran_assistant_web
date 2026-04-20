@@ -12,6 +12,13 @@ interface Reciter {
   id: number;
   name: string;
   style?: string;
+  slug: string;
+}
+
+interface Translation {
+  id: number;
+  name: string;
+  author: string;
 }
 
 interface AudioContextType {
@@ -27,6 +34,12 @@ interface AudioContextType {
   setReciter: (id: number) => void;
   stopAudio: () => void;
   activeId: string | null; // For highlighting in mushaf (e.g. "1:1")
+  wordTranslations: Record<string, string>;
+  fetchWordTranslations: (pageNumber: number) => Promise<void>;
+  translationId: number;
+  setTranslationId: (id: number) => void;
+  translationText: string | null;
+  translations: Translation[];
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -45,12 +58,24 @@ export const RECITERS: Reciter[] = [
   { id: 11, name: "Mohamed al-Tablawi", style: "Murattal", slug: "tablawi" },
 ];
 
+export const TRANSLATIONS: Translation[] = [
+  { id: 131, name: "The Clear Quran", author: "Dr. Mustafa Khattab" },
+  { id: 20, name: "Sahih International", author: "Sahih International" },
+  { id: 171, name: "Abdul Haleem", author: "M.A.S. Abdel Haleem" },
+  { id: 22, name: "Yusuf Ali", author: "Abdullah Yusuf Ali" },
+  { id: 167, name: "Maarif-ul-Quran", author: "Mufti Muhammad Shafi" },
+];
+
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentAyah, setCurrentAyah] = useState<AyahId | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoplay, setIsAutoplay] = useState(false);
   const [reciterId, setReciterId] = useState(RECITERS[0].id);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [wordTranslations, setWordTranslations] = useState<Record<string, string>>({});
+  const [translationId, setTranslationId] = useState(TRANSLATIONS[0].id);
+  const [translationText, setTranslationText] = useState<string | null>(null);
+  const fetchedPages = useRef<Set<number>>(new Set());
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAutoplayRef = useRef(isAutoplay);
@@ -103,7 +128,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []); // Run only once
 
   const playPromiseRef = useRef<Promise<void> | null>(null);
-  const playAyahRef = useRef<(surah: number, ayah: number) => void>(null);
+  const playAyahRef = useRef<(surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number) => void>(null);
 
   const playAyah = useCallback(async (surah: number, ayah: number, shouldPlay = false, overrideReciterId?: number) => {
     if (!audioRef.current) return;
@@ -241,6 +266,57 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [currentAyah, playAyah]);
 
+  const fetchWordTranslations = useCallback(async (pageNumber: number) => {
+    if (fetchedPages.current.has(pageNumber)) return;
+
+    try {
+      const res = await fetch(
+        `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=translation&translation_language=en`
+      );
+      const data = await res.json();
+
+      if (data.verses) {
+        const newTranslations: Record<string, string> = {};
+        data.verses.forEach((verse: any) => {
+          verse.words.forEach((word: any) => {
+            if (word.translation && word.translation.text) {
+              const location = `${verse.verse_key}:${word.position}`;
+              newTranslations[location] = word.translation.text;
+            }
+          });
+        });
+
+        setWordTranslations((prev) => ({ ...prev, ...newTranslations }));
+        fetchedPages.current.add(pageNumber);
+      }
+    } catch (err) {
+      console.error(`Failed to fetch word translations for page ${pageNumber}:`, err);
+    }
+  }, []);
+
+  const fetchAyahTranslation = useCallback(async (surah: number, ayah: number, tId: number) => {
+    try {
+      const res = await fetch(`https://api.quran.com/api/v4/quran/translations/${tId}?verse_key=${surah}:${ayah}`);
+      const data = await res.json();
+      if (data.translations && data.translations.length > 0) {
+        // Remove HTML tags from translation if they exist
+        const text = data.translations[0].text.replace(/<[^>]*>?/gm, '');
+        setTranslationText(text);
+      }
+    } catch (err) {
+      console.error("Failed to fetch ayah translation:", err);
+      setTranslationText(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentAyah) {
+      fetchAyahTranslation(currentAyah.surah, currentAyah.ayah, translationId);
+    } else {
+      setTranslationText(null);
+    }
+  }, [currentAyah, translationId, fetchAyahTranslation]);
+
   return (
     <AudioContext.Provider
       value={{
@@ -256,6 +332,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setReciter,
         stopAudio,
         activeId,
+        wordTranslations,
+        fetchWordTranslations,
+        translationId,
+        setTranslationId,
+        translationText,
+        translations: TRANSLATIONS,
       }}
     >
       {children}

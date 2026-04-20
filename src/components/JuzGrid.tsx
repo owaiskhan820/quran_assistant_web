@@ -4,7 +4,7 @@ import Link from "next/link";
 interface JuzData {
   id: number;
   juz: number;
-  name_english: string;
+  name_english?: string;
   name_arabic: string;
   verses_count: number;
   verse_mapping: {

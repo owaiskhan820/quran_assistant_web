@@ -56,20 +56,6 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-6">
-            <nav className="hidden sm:flex gap-6 items-center">
-              <Link
-                href="/"
-                className="text-sm font-medium text-gray-700 hover:text-emerald-600 transition"
-              >
-                Browse
-              </Link>
-              <Link
-                href="/search"
-                className="text-sm font-medium text-gray-700 hover:text-emerald-600 transition"
-              >
-                Search
-              </Link>
-            </nav>
             <Link
               href="/settings"
               className="p-2 -mr-2 hover:bg-emerald-500/5 rounded-full transition-colors text-gray-600 hover:text-emerald-600"

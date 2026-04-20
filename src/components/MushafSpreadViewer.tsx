@@ -41,16 +41,11 @@ function getWordAudioUrl(location: string): string | null {
 function FifteenLineGrid({
   pageNumber,
   lines,
-  playAyah,
-  playUrl,
-  activeId,
 }: {
   pageNumber: number;
   lines: MushafLine[];
-  playAyah: (surah: number, ayah: number) => void;
-  playUrl: (url: string, id: string) => void;
-  activeId: string | null;
 }) {
+  const { playAyah, playUrl, activeId, wordTranslations } = useAudioContext();
   function Basmalah() {
     return (
       <div className="flex w-full items-center justify-center py-2 text-black">
@@ -134,40 +129,88 @@ function FifteenLineGrid({
                 }
               };
 
+              const translation = wordTranslations[word.l];
+
               return (
-                <div
-                  key={`${line.line}-${idx}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={handlePlay}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      handlePlay();
-                    }
-                  }}
-                  className={`
-                    leading-none font-normal cursor-pointer transition-all duration-300
-                    text-[clamp(1.35rem,5.5vw,1.75rem)]  /* Mobile-Default */
-                    lg:text-[1.75rem]                /* Desktop-Canonical */
-                    rounded-sm px-0.5 py-1 -mx-0.5
-                    ${isActive 
-                      ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20" 
-                      : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
-                  `}
-                  style={{
-                    color: isActive 
-                      ? "var(--primary)" 
-                      : (word.isStopSign ? "var(--primary)" : "inherit"),
-                  }}
-                  title={word.l}
-                >
-                  {word.c}
-                </div>
+                <WordTooltip key={`${line.line}-${idx}`} translation={translation}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={handlePlay}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handlePlay();
+                      }
+                    }}
+                    className={`
+                      leading-none font-normal cursor-pointer transition-all duration-300
+                      text-[clamp(1.35rem,5.5vw,1.75rem)]  /* Mobile-Default */
+                      lg:text-[1.75rem]                /* Desktop-Canonical */
+                      rounded-sm px-0.5 py-1 -mx-0.5 relative
+                      ${isActive 
+                        ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20" 
+                        : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
+                    `}
+                    style={{
+                      color: isActive 
+                        ? "var(--primary)" 
+                        : (word.isStopSign ? "var(--primary)" : "inherit"),
+                    }}
+                  >
+                    {word.c}
+                  </div>
+                </WordTooltip>
               );
             })
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function WordTooltip({ 
+  children, 
+  translation 
+}: { 
+  children: React.ReactNode; 
+  translation?: string;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  if (!translation) return <>{children}</>;
+
+  return (
+    <div 
+      className="relative flex items-center justify-center"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+      onClick={() => setIsVisible(!isVisible)}
+    >
+      <AnimatePresence>
+        {isVisible && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10, x: "-50%" }}
+            animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, scale: 0.95, y: -10, x: "-50%" }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute bottom-full mb-3 left-1/2 z-[9999] pointer-events-none"
+            style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }}
+          >
+            <div className="bg-[#54948F] text-white text-sm px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg">
+              {translation}
+              {/* Arrow */}
+              <div 
+                className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 
+                          border-l-[6px] border-l-transparent 
+                          border-r-[6px] border-r-transparent 
+                          border-t-[6px] border-t-[#54948F]"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {children}
     </div>
   );
 }
@@ -188,7 +231,12 @@ export default function MushafSpreadViewer({
   leftLines,
 }: MushafSpreadViewerProps) {
   const router = useRouter();
-  const { playAyah, playUrl, activeId } = useAudioContext();
+  const { playAyah, playUrl, activeId, wordTranslations, fetchWordTranslations } = useAudioContext();
+
+  useEffect(() => {
+    if (rightPage) fetchWordTranslations(rightPage);
+    if (leftPage && leftPage !== rightPage) fetchWordTranslations(leftPage);
+  }, [rightPage, leftPage, fetchWordTranslations]);
 
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -360,9 +408,6 @@ export default function MushafSpreadViewer({
                   <FifteenLineGrid 
                     pageNumber={page.pageNumber} 
                     lines={page.lines}
-                    playAyah={playAyah}
-                    playUrl={playUrl}
-                    activeId={activeId}
                   />
                 </div>
 

@@ -41,7 +41,7 @@ export interface JuzVerseMapping {
 export interface Juz {
   id: number;
   juz: number;
-  name_english: string;
+  name_english?: string;
   name_arabic: string;
   verses_count: number;
   verse_mapping: JuzVerseMapping;

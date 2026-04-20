@@ -11,7 +11,8 @@ import {
   ChevronUp, 
   User, 
   Check, 
-  RefreshCcw 
+  RefreshCcw,
+  Languages
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -25,14 +26,20 @@ export default function MediaPlayer() {
     stopAudio, 
     reciters, 
     reciterId, 
-    setReciter 
+    setReciter,
+    translationId,
+    setTranslationId,
+    translationText,
+    translations
   } = useAudioContext();
 
   const [isReciterMenuOpen, setIsReciterMenuOpen] = useState(false);
+  const [isTranslationMenuOpen, setIsTranslationMenuOpen] = useState(false);
 
-  // Close menu when ayah changes or player is closed
+  // Close menus when ayah changes or player is closed
   useEffect(() => {
     setIsReciterMenuOpen(false);
+    setIsTranslationMenuOpen(false);
   }, [currentAyah?.surah, currentAyah?.ayah]);
 
   if (!currentAyah) return null;
@@ -50,9 +57,10 @@ export default function MediaPlayer() {
         <div className="relative bg-white/80 backdrop-blur-xl border border-primary/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-3xl p-4 flex flex-col gap-3 overflow-visible">
           
           {/* Qari Selector Popup (Centralized) */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {isReciterMenuOpen && (
               <motion.div
+                key="reciter-menu"
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -87,6 +95,44 @@ export default function MediaPlayer() {
                 </div>
               </motion.div>
             )}
+
+            {isTranslationMenuOpen && (
+              <motion.div
+                key="translation-menu"
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-2 z-50 max-h-[300px] overflow-y-auto custom-scrollbar"
+              >
+                <div className="sticky top-0 bg-white/90 backdrop-blur-sm px-4 py-2 border-b border-gray-50 mb-1 z-10">
+                  <span className="text-xs font-bold text-muted uppercase tracking-wider">Choose Translation</span>
+                </div>
+                <div className="px-1">
+                  {translations.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        setTranslationId(t.id);
+                        setIsTranslationMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2.5 text-left flex items-center justify-between hover:bg-primary/5 rounded-xl transition-colors mb-0.5"
+                    >
+                      <div className="flex flex-col">
+                        <span className={`${translationId === t.id ? 'text-primary font-semibold' : 'text-gray-700'} text-sm`}>
+                          {t.name}
+                        </span>
+                        <span className="text-[10px] text-muted opacity-80">{t.author}</span>
+                      </div>
+                      {translationId === t.id && (
+                        <div className="bg-primary/10 p-1 rounded-full">
+                          <Check size={14} className="text-primary" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Top Section: Info and Close */}
@@ -111,16 +157,51 @@ export default function MediaPlayer() {
             </button>
           </div>
 
+          {/* Translation Text Display */}
+          <AnimatePresence mode="wait">
+            {currentAyah && translationText && (
+              <motion.div
+                key={`${currentAyah.surah}:${currentAyah.ayah}-${translationId}`}
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className="px-4 py-1 pb-2"
+              >
+                <p className="text-sm text-gray-700 leading-relaxed text-center font-medium italic selection:bg-primary/20">
+                  "{translationText}"
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Controls Section */}
           <div className="flex items-center justify-between bg-emerald-50/50 rounded-2xl p-2">
             
-            {/* Reciter Selector Button */}
-            <button 
-              onClick={() => setIsReciterMenuOpen(!isReciterMenuOpen)}
-              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${isReciterMenuOpen ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/10 text-primary'}`}
-            >
-              <User size={20} />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Reciter Selector Button */}
+              <button 
+                onClick={() => {
+                  setIsReciterMenuOpen(!isReciterMenuOpen);
+                  setIsTranslationMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${isReciterMenuOpen ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/10 text-primary'}`}
+                title="Choose Qari"
+              >
+                <User size={20} />
+              </button>
+
+              {/* Translation Selector Button */}
+              <button 
+                onClick={() => {
+                  setIsTranslationMenuOpen(!isTranslationMenuOpen);
+                  setIsReciterMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${isTranslationMenuOpen ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/10 text-primary'}`}
+                title="Choose Translation"
+              >
+                <Languages size={20} />
+              </button>
+            </div>
 
             {/* Play/Pause Button */}
             <button 
