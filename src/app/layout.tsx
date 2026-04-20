@@ -47,8 +47,9 @@ export default function RootLayout({
       <head>
         <link rel="preload" href="/fonts/common/surah-name-v2.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/common/quran-common.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <meta name="color-scheme" content="light only" />
       </head>
-      <body className="min-h-full flex flex-col bg-surface" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-white text-black" suppressHydrationWarning>
         <AudioProvider>
           <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
           {children}

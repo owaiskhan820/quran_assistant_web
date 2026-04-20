@@ -146,7 +146,7 @@ function FifteenLineGrid({
                       leading-none font-normal cursor-pointer transition-all duration-300
                       text-[clamp(1.35rem,5.5vw,1.75rem)]  /* Mobile-Default */
                       lg:text-[1.75rem]                /* Desktop-Canonical */
-                      rounded-sm px-0.5 py-1 -mx-0.5 relative
+                      text-[#1a1a1a]
                       ${isActive 
                         ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20" 
                         : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
@@ -154,7 +154,7 @@ function FifteenLineGrid({
                     style={{
                       color: isActive 
                         ? "var(--primary)" 
-                        : (word.isStopSign ? "var(--primary)" : "inherit"),
+                        : (word.isStopSign ? "var(--primary)" : "#1a1a1a"),
                     }}
                   >
                     {word.c}
