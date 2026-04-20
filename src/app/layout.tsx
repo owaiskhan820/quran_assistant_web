@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Plus_Jakarta_Sans, Noto_Serif } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans, Noto_Serif, Noto_Sans_Arabic } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import { AudioProvider } from "@/context/AudioContext";
 import MediaPlayer from "@/components/MediaPlayer";
@@ -29,9 +29,33 @@ const notoSerif = Noto_Serif({
   weight: ["400", "500", "600", "700"],
 });
 
+const notoArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Quran Kareem",
   description: "Browse and read the Quran",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Quran Kareem",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport = {
+  themeColor: "#005354",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -42,7 +66,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} ${notoSerif.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} ${notoSerif.variable} ${notoArabic.variable} h-full antialiased`}
     >
       <head>
         <link rel="preload" href="/fonts/common/surah-name-v2.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -77,7 +77,7 @@ function FifteenLineGrid({
       }
       style={{ fontFamily: `p${pageNumber}` }}
     >
-      {linesToRender.map((line) => (
+      {linesToRender.map((line, lineIdx) => (
         <div
           key={line.line}
           className="flex min-w-0 flex-row items-center px-0 lg:px-4"
@@ -119,7 +119,7 @@ function FifteenLineGrid({
               const isWordActive = activeId === word.l;
               const isAyahActive = activeId === `${word.s}:${word.a}`;
               const isActive = isWordActive || (word.isStopSign && isAyahActive);
-              
+
               const handlePlay = () => {
                 if (word.isStopSign) {
                   playAyah(parseInt(word.s), parseInt(word.a));
@@ -132,7 +132,7 @@ function FifteenLineGrid({
               const translation = wordTranslations[word.l];
 
               return (
-                <WordTooltip key={`${line.line}-${idx}`} translation={translation}>
+                <WordTooltip key={`${line.line}-${idx}`} translation={translation} lineIdx={lineIdx}>
                   <div
                     role="button"
                     tabIndex={0}
@@ -144,16 +144,16 @@ function FifteenLineGrid({
                     }}
                     className={`
                       leading-none font-normal cursor-pointer transition-all duration-300
-                      text-[clamp(1.35rem,5.5vw,1.75rem)]  /* Mobile-Default */
+                      text-[clamp(1.15rem,5.2vw,1.65rem)]  /* Mobile-Default (Slightly Reduced) */
                       lg:text-[1.75rem]                /* Desktop-Canonical */
                       text-[#1a1a1a]
-                      ${isActive 
-                        ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20" 
+                      ${isActive
+                        ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20"
                         : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
                     `}
                     style={{
-                      color: isActive 
-                        ? "var(--primary)" 
+                      color: isActive
+                        ? "var(--primary)"
                         : (word.isStopSign ? "var(--primary)" : "#1a1a1a"),
                     }}
                   >
@@ -169,42 +169,66 @@ function FifteenLineGrid({
   );
 }
 
-function WordTooltip({ 
-  children, 
-  translation 
-}: { 
-  children: React.ReactNode; 
+function WordTooltip({
+  children,
+  translation,
+  lineIdx
+}: {
+  children: React.ReactNode;
   translation?: string;
+  lineIdx: number;
 }) {
   const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState<"top" | "bottom">("top");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleToggle = (visible: boolean) => {
+    // The Rule: Only flip if it's the absolute first line (index 0)
+    if (visible) {
+      if (lineIdx === 0) {
+        setPosition("bottom");
+      } else {
+        setPosition("top");
+      }
+    }
+    setIsVisible(visible);
+  };
 
   if (!translation) return <>{children}</>;
 
+  const isTop = position === "top";
+
   return (
-    <div 
+    <div
+      ref={containerRef}
       className="relative flex items-center justify-center"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-      onClick={() => setIsVisible(!isVisible)}
+      onMouseEnter={() => handleToggle(true)}
+      onMouseLeave={() => handleToggle(false)}
+      onClick={() => handleToggle(!isVisible)}
     >
       <AnimatePresence>
         {isVisible && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10, x: "-50%" }}
+            initial={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
             animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, scale: 0.95, y: -10, x: "-50%" }}
+            exit={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute bottom-full mb-3 left-1/2 z-[9999] pointer-events-none"
-            style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }}
+            className={`absolute ${isTop ? "bottom-full mb-3" : "top-full mt-3"} left-1/2 z-[9999] pointer-events-none`}
+            style={{
+              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
+              transformOrigin: isTop ? "bottom center" : "top center"
+            }}
           >
             <div className="bg-[#54948F] text-white text-sm px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg">
               {translation}
               {/* Arrow */}
-              <div 
-                className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 
+              <div
+                className={`absolute ${isTop ? "top-full" : "bottom-full"} left-1/2 -translate-x-1/2 w-0 h-0 
                           border-l-[6px] border-l-transparent 
                           border-r-[6px] border-r-transparent 
-                          border-t-[6px] border-t-[#54948F]"
+                          ${isTop
+                    ? "border-t-[6px] border-t-[#54948F]"
+                    : "border-b-[6px] border-b-[#54948F]"}`}
               />
             </div>
           </motion.div>
@@ -241,7 +265,7 @@ export default function MushafSpreadViewer({
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
+  const isWheelLocked = useRef(false);
   const minSwipeDistance = 50;
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -263,6 +287,34 @@ export default function MushafSpreadViewer({
       router.push(`/page/${requestedPage + 1}`);
     } else if (isLeftSwipe && requestedPage > 1) {
       router.push(`/page/${requestedPage - 1}`);
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (isWheelLocked.current) return;
+
+    const threshold = 40; // Sensitivity threshold for deltaX
+    const { deltaX, deltaY } = e;
+
+    // Detect intentional horizontal movement (deltaX > deltaY)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > threshold) {
+      isWheelLocked.current = true;
+
+      // Map deltaX to the existing swipe logic
+      // deltaX > 0 is scroll right (swipe left)
+      // deltaX < 0 is scroll left (swipe right)
+      if (deltaX < 0 && requestedPage < 604) {
+        // Equivalent to isRightSwipe
+        router.push(`/page/${requestedPage + 1}`);
+      } else if (deltaX > 0 && requestedPage > 1) {
+        // Equivalent to isLeftSwipe
+        router.push(`/page/${requestedPage - 1}`);
+      }
+
+      // Lock navigation for 600ms to allow the trackpad gesture to finish
+      setTimeout(() => {
+        isWheelLocked.current = false;
+      }, 600);
     }
   };
 
@@ -324,6 +376,7 @@ export default function MushafSpreadViewer({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
     >
       <style jsx global>{`
         body {
@@ -363,11 +416,11 @@ export default function MushafSpreadViewer({
                   ${page.pageNumber === requestedPage ? "flex flex-1" : "hidden lg:flex flex-1"}
                 `}
               >
-                {/* Header Slot (Upcoming Surah/Juz names) */}
-                <div className="h-8 w-full flex items-center justify-between px-2 lg:px-8 text-xs font-medium text-muted">
+                {/* Celestial Header Slot - with backdrop blur and transparency */}
+                <div className="h-10 w-full flex items-center justify-between px-2 lg:px-8 text-xs font-medium text-muted sticky top-0 bg-white/80 backdrop-blur-md z-30 transition-all border-b border-divider/5">
                   {/* Juz Name on the Right - Reverted to calligraphic icons */}
                   <div
-                    className="flex-1 text-right text-xl leading-none text-primary/80 select-none"
+                    className="flex-1 text-right text-lg leading-none text-primary/80 select-none pr-2"
                     style={{
                       fontFamily: 'QuranCommon',
                       fontVariantLigatures: 'common-ligatures',
@@ -404,9 +457,9 @@ export default function MushafSpreadViewer({
                 {/* Keyline Divider */}
                 <div className="mx-2 lg:mx-8 mb-3 border-t border-divider" />
 
-                <div className="relative z-10 flex-1 w-full px-2 lg:px-8 pb-2 overflow-hidden select-none">
-                  <FifteenLineGrid 
-                    pageNumber={page.pageNumber} 
+                <div className="relative z-10 flex-1 w-full pt-2 px-5 lg:px-8 pb-2 overflow-hidden select-none">
+                  <FifteenLineGrid
+                    pageNumber={page.pageNumber}
                     lines={page.lines}
                   />
                 </div>

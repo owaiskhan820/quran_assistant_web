@@ -18,6 +18,12 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: "UrduNastaleeq";
+  src: url("/fonts/Urdu/Al Qalam Taj Nastaleeq Regular - [UrduFonts.com].ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   --background: #f8fafb;
   --background-rgb: 248, 250, 251;
@@ -49,6 +55,7 @@
 
   --font-sans: var(--font-plus-jakarta);
   --font-serif: var(--font-noto-serif);
+  --font-arabic: "UrduNastaleeq", var(--font-noto-arabic), serif;
 
   --animate-spin-slow: spin 3s linear infinite;
 

@@ -12,7 +12,9 @@ import {
   User, 
   Check, 
   RefreshCcw,
-  Languages
+  Languages,
+  SkipBack,
+  SkipForward
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -23,7 +25,9 @@ export default function MediaPlayer() {
     isAutoplay, 
     togglePlay, 
     toggleAutoplay, 
-    stopAudio, 
+    stopAudio,
+    playNextAyah,
+    playPreviousAyah,
     reciters, 
     reciterId, 
     setReciter,
@@ -167,8 +171,18 @@ export default function MediaPlayer() {
                 exit={{ opacity: 0, y: 5 }}
                 className="px-4 py-1 pb-2"
               >
-                <p className="text-sm text-gray-700 leading-relaxed text-center font-medium italic selection:bg-primary/20">
-                  "{translationText}"
+                {/* 
+                  Urdu IDs for RTL and Arabic Font:
+                  158, 97, 234, 54, 151, 819 
+                */}
+                <p 
+                  className={`text-gray-700 leading-relaxed text-center font-medium selection:bg-primary/20 transition-all duration-300
+                    ${[158, 97, 234, 54, 151, 819].includes(translationId) 
+                      ? 'font-arabic text-xl border-t border-primary/5 pt-2' 
+                      : 'text-sm'}`}
+                  dir={[158, 97, 234, 54, 151, 819].includes(translationId) ? "rtl" : "ltr"}
+                >
+                  {[158, 97, 234, 54, 151, 819].includes(translationId) ? translationText : `"${translationText}"`}
                 </p>
               </motion.div>
             )}
@@ -203,13 +217,33 @@ export default function MediaPlayer() {
               </button>
             </div>
 
-            {/* Play/Pause Button */}
-            <button 
-              onClick={togglePlay}
-              className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-            >
-              {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Previous Ayah Button */}
+              <button 
+                onClick={playPreviousAyah}
+                className="p-2 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90"
+                title="Previous Ayah"
+              >
+                <SkipBack size={20} fill="currentColor" className="opacity-80" />
+              </button>
+
+              {/* Play/Pause Button */}
+              <button 
+                onClick={togglePlay}
+                className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95"
+              >
+                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
+              </button>
+
+              {/* Next Ayah Button */}
+              <button 
+                onClick={playNextAyah}
+                className="p-2 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90"
+                title="Next Ayah"
+              >
+                <SkipForward size={20} fill="currentColor" className="opacity-80" />
+              </button>
+            </div>
 
             {/* Autoplay Toggle */}
             <button 

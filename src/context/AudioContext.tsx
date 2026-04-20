@@ -19,6 +19,7 @@ interface Translation {
   id: number;
   name: string;
   author: string;
+  slug: string;
 }
 
 interface AudioContextType {
@@ -31,6 +32,8 @@ interface AudioContextType {
   playUrl: (url: string, id: string) => void;
   togglePlay: () => void;
   toggleAutoplay: () => void;
+  playNextAyah: () => void;
+  playPreviousAyah: () => void;
   setReciter: (id: number) => void;
   stopAudio: () => void;
   activeId: string | null; // For highlighting in mushaf (e.g. "1:1")
@@ -59,11 +62,21 @@ export const RECITERS: Reciter[] = [
 ];
 
 export const TRANSLATIONS: Translation[] = [
-  { id: 131, name: "The Clear Quran", author: "Dr. Mustafa Khattab" },
-  { id: 20, name: "Sahih International", author: "Sahih International" },
-  { id: 171, name: "Abdul Haleem", author: "M.A.S. Abdel Haleem" },
-  { id: 22, name: "Yusuf Ali", author: "Abdullah Yusuf Ali" },
-  { id: 167, name: "Maarif-ul-Quran", author: "Mufti Muhammad Shafi" },
+  // English
+  { id: 20, name: "Sahih International", author: "Sahih International", slug: "en-sahih" },
+  { id: 131, name: "The Clear Quran", author: "Dr. Mustafa Khattab", slug: "clear-quran" },
+  { id: 171, name: "Abdul Haleem", author: "M.A.S. Abdel Haleem", slug: "en-abdul-haleem" },
+  { id: 22, name: "Yusuf Ali", author: "Abdullah Yusuf Ali", slug: "en-yusuf-ali" },
+  { id: 167, name: "Maarif-ul-Quran", author: "Mufti Muhammad Shafi", slug: "en-maarif-ul-quran" },
+  
+  // Urdu
+  { id: 158, name: "Bayan-ul-Quran (Urdu)", author: "Dr. Israr Ahmad", slug: "bayan-ul-quran" },
+  { id: 97, name: "Tafheem-e-Qur'an (Urdu)", author: "Syed Abu Ali Maududi", slug: "ur-al-maududi" },
+  { id: 234, name: "Fatah Muhammad Jalandhari (Urdu)", author: "Fatah Muhammad Jalandhari", slug: "ur-fatah-muhammad-jalandhari" },
+  { id: 54, name: "Maulana Muhammad Junagarhi (Urdu)", author: "Maulana Muhammad Junagarhi", slug: "ur-junagarri" },
+  { id: 151, name: "Tafsir-e-Usmani (Urdu)", author: "Shaykh al-Hind Mahmud al-Hasan", slug: "tafsir-e-usmani" },
+  { id: 819, name: "Maulana Wahiduddin Khan (Urdu)", author: "Maulana Wahiduddin Khan", slug: "maulana-wahid-uddin-khan-urdu" },
+  { id: 831, name: "Maududi (Roman Urdu)", author: "Abul Ala Maududi", slug: "maududi-roman-urdu" },
 ];
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -73,7 +86,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [reciterId, setReciterId] = useState(RECITERS[0].id);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [wordTranslations, setWordTranslations] = useState<Record<string, string>>({});
-  const [translationId, setTranslationId] = useState(TRANSLATIONS[0].id);
+  const [translationId, setTranslationId] = useState(20);
   const [translationText, setTranslationText] = useState<string | null>(null);
   const fetchedPages = useRef<Set<number>>(new Set());
 
@@ -225,6 +238,26 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playAyah(nextSurah, nextAyah, true);
   }, [currentAyah, playAyah]);
 
+  const playPreviousAyah = useCallback(() => {
+    if (!currentAyah) return;
+
+    let prevSurah = currentAyah.surah;
+    let prevAyah = currentAyah.ayah - 1;
+
+    if (prevAyah < 1) {
+      if (prevSurah <= 1) {
+        // At the beginning of the Quran
+        audioRef.current && (audioRef.current.currentTime = 0);
+        return;
+      }
+      prevSurah -= 1;
+      const prevChapter = chaptersData.chapters.find(c => c.id === prevSurah);
+      prevAyah = prevChapter ? prevChapter.verses_count : 1;
+    }
+
+    playAyah(prevSurah, prevAyah, true);
+  }, [currentAyah, playAyah]);
+
   const togglePlay = useCallback(async () => {
     if (!audioRef.current || !currentAyah) return;
 
@@ -329,6 +362,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playUrl,
         togglePlay,
         toggleAutoplay,
+        playNextAyah,
+        playPreviousAyah,
         setReciter,
         stopAudio,
         activeId,
