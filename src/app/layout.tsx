@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans, Noto_Serif } from "next/font/google";
 import Navbar from "@/components/Navbar";
+import { AudioProvider } from "@/context/AudioContext";
+import MediaPlayer from "@/components/MediaPlayer";
 import "./globals.css";
 import chaptersData from "../../public/data/chapters/chapters.json";
 import juzsData from "../../public/data/juzs.json";
@@ -47,9 +49,13 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/common/quran-common.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col bg-surface" suppressHydrationWarning>
-        <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
-        {children}
+        <AudioProvider>
+          <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
+          {children}
+          <MediaPlayer />
+        </AudioProvider>
       </body>
     </html>
   );
 }
+

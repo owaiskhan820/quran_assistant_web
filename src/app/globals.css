@@ -49,6 +49,13 @@
 
   --font-sans: var(--font-plus-jakarta);
   --font-serif: var(--font-noto-serif);
+
+  --animate-spin-slow: spin 3s linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 }
 
 @media (prefers-color-scheme: dark) {

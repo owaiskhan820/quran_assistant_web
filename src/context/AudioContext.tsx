@@ -1,0 +1,272 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import chaptersData from "../../public/data/chapters/chapters.json";
+
+interface AyahId {
+  surah: number;
+  ayah: number;
+}
+
+interface Reciter {
+  id: number;
+  name: string;
+  style?: string;
+}
+
+interface AudioContextType {
+  currentAyah: AyahId | null;
+  isPlaying: boolean;
+  isAutoplay: boolean;
+  reciterId: number;
+  reciters: Reciter[];
+  playAyah: (surah: number, ayah: number) => void;
+  playUrl: (url: string, id: string) => void;
+  togglePlay: () => void;
+  toggleAutoplay: () => void;
+  setReciter: (id: number) => void;
+  stopAudio: () => void;
+  activeId: string | null; // For highlighting in mushaf (e.g. "1:1")
+}
+
+const AudioContext = createContext<AudioContextType | undefined>(undefined);
+
+export const RECITERS: Reciter[] = [
+  { id: 9, name: "Mohamed Siddiq al-Minshawi", style: "Murattal", slug: "minshawi-murattal" },
+  { id: 8, name: "Mohamed Siddiq al-Minshawi", style: "Mujawwad", slug: "minshawi-mujawwad" },
+  { id: 2, name: "AbdulBaset AbdulSamad", style: "Murattal", slug: "abdulbaset-murattal" },
+  { id: 1, name: "AbdulBaset AbdulSamad", style: "Mujawwad", slug: "abdulbaset-mujawwad" },
+  { id: 12, name: "Mahmoud Khalil Al-Husary", style: "Muallim", slug: "husary-muallim" },
+  { id: 6, name: "Mahmoud Khalil Al-Husary", style: "Murattal", slug: "husary" },
+  { id: 3, name: "Abdur-Rahman as-Sudais", style: "Murattal", slug: "sudais" },
+  { id: 10, name: "Sa`ud ash-Shuraym", style: "Murattal", slug: "shuraym" },
+  { id: 4, name: "Abu Bakr al-Shatri", style: "Murattal", slug: "shatri" },
+  { id: 5, name: "Hani ar-Rifai", style: "Murattal", slug: "rifai" },
+  { id: 11, name: "Mohamed al-Tablawi", style: "Murattal", slug: "tablawi" },
+];
+
+export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentAyah, setCurrentAyah] = useState<AyahId | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isAutoplay, setIsAutoplay] = useState(false);
+  const [reciterId, setReciterId] = useState(RECITERS[0].id);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isAutoplayRef = useRef(isAutoplay);
+  const currentAyahRef = useRef(currentAyah);
+
+  useEffect(() => {
+    isAutoplayRef.current = isAutoplay;
+    currentAyahRef.current = currentAyah;
+  }, [isAutoplay, currentAyah]);
+
+  useEffect(() => {
+    const audio = new Audio();
+    audioRef.current = audio;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      // Use refs to get latest state without effect re-runs
+      if (isAutoplayRef.current && currentAyahRef.current) {
+        // Trigger next ayah via a small delay or direct call
+        // We'll call playNextAyah logic directly here to be safe
+        const current = currentAyahRef.current;
+        const chapter = chaptersData.chapters.find(c => c.id === current.surah);
+        if (chapter) {
+          let nextSurah = current.surah;
+          let nextAyah = current.ayah + 1;
+          if (nextAyah > chapter.verses_count) {
+            nextSurah += 1;
+            nextAyah = 1;
+          }
+          if (nextSurah <= 114) {
+            playAyahRef.current?.(nextSurah, nextAyah, true);
+          }
+        }
+      }
+    };
+
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.pause();
+      audio.src = "";
+    };
+  }, []); // Run only once
+
+  const playPromiseRef = useRef<Promise<void> | null>(null);
+  const playAyahRef = useRef<(surah: number, ayah: number) => void>(null);
+
+  const playAyah = useCallback(async (surah: number, ayah: number, shouldPlay = false, overrideReciterId?: number) => {
+    if (!audioRef.current) return;
+
+    const targetReciterId = overrideReciterId || reciterId;
+    const ayahKey = `${surah}:${ayah}`;
+    setCurrentAyah({ surah, ayah });
+    setActiveId(ayahKey);
+
+    try {
+      const res = await fetch(`https://api.quran.com/api/v4/verses/by_key/${ayahKey}?audio=${targetReciterId}`);
+      const data = await res.json();
+      const relativeUrl = data.verse?.audio?.url;
+
+      if (!relativeUrl) throw new Error("Audio URL not found");
+
+      const url = relativeUrl.startsWith("http")
+        ? relativeUrl
+        : relativeUrl.startsWith("//")
+          ? `https:${relativeUrl}`
+          : `https://audio.qurancdn.com/${relativeUrl}`;
+
+      console.log(`Loading Ayah ${ayahKey} for Reciter ${targetReciterId}:`, url);
+
+      // Force update src if reciter changed or src is different
+      if (audioRef.current.src !== url) {
+        audioRef.current.src = url;
+        audioRef.current.load(); // Ensure new source is loaded
+      }
+
+      audioRef.current.currentTime = 0;
+
+      if (shouldPlay) {
+        const playPromise = audioRef.current.play();
+        playPromiseRef.current = playPromise;
+
+        playPromise.catch(err => {
+          if (err.name !== "AbortError") {
+            console.error("Playback failed:", err);
+          }
+        });
+      } else {
+        setIsPlaying(false);
+      }
+    } catch (err) {
+      console.error("Failed to fetch ayah audio:", err);
+      setIsPlaying(false);
+    }
+  }, [reciterId]);
+
+  useEffect(() => {
+    playAyahRef.current = playAyah;
+  }, [playAyah]);
+
+  const playUrl = useCallback((url: string, id: string) => {
+    if (!audioRef.current) return;
+
+    if (audioRef.current.src !== url) {
+      audioRef.current.src = url;
+    }
+
+    audioRef.current.currentTime = 0;
+    setActiveId(id);
+
+    const playPromise = audioRef.current.play();
+    playPromiseRef.current = playPromise;
+    playPromise.catch(err => {
+      if (err.name !== "AbortError") {
+        console.error("Playback failed:", err);
+      }
+    });
+  }, []);
+
+  const playNextAyah = useCallback(() => {
+    if (!currentAyah) return;
+
+    const chapter = chaptersData.chapters.find(c => c.id === currentAyah.surah);
+    if (!chapter) return;
+
+    let nextSurah = currentAyah.surah;
+    let nextAyah = currentAyah.ayah + 1;
+
+    if (nextAyah > chapter.verses_count) {
+      nextSurah += 1;
+      nextAyah = 1;
+    }
+
+    if (nextSurah > 114) {
+      setCurrentAyah(null);
+      setActiveId(null);
+      return;
+    }
+
+    playAyah(nextSurah, nextAyah, true);
+  }, [currentAyah, playAyah]);
+
+  const togglePlay = useCallback(async () => {
+    if (!audioRef.current || !currentAyah) return;
+
+    if (isPlaying) {
+      if (playPromiseRef.current) {
+        await playPromiseRef.current.catch(() => { });
+      }
+      audioRef.current.pause();
+    } else {
+      const playPromise = audioRef.current.play();
+      playPromiseRef.current = playPromise;
+      playPromise.catch(err => {
+        if (err.name !== "AbortError") {
+          console.error("Playback failed:", err);
+        }
+      });
+    }
+  }, [isPlaying, currentAyah]);
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setCurrentAyah(null);
+    setActiveId(null);
+    setIsPlaying(false);
+  }, []);
+
+  const toggleAutoplay = useCallback(() => {
+    setIsAutoplay(prev => !prev);
+  }, []);
+
+  const setReciter = useCallback((id: number) => {
+    setReciterId(id);
+    // If playing, restart current ayah with new reciter immediately
+    if (currentAyah) {
+      playAyah(currentAyah.surah, currentAyah.ayah, true, id);
+    }
+  }, [currentAyah, playAyah]);
+
+  return (
+    <AudioContext.Provider
+      value={{
+        currentAyah,
+        isPlaying,
+        isAutoplay,
+        reciterId,
+        reciters: RECITERS,
+        playAyah,
+        playUrl,
+        togglePlay,
+        toggleAutoplay,
+        setReciter,
+        stopAudio,
+        activeId,
+      }}
+    >
+      {children}
+    </AudioContext.Provider>
+  );
+};
+
+export const useAudioContext = () => {
+  const context = useContext(AudioContext);
+  if (context === undefined) {
+    throw new Error("useAudioContext must be used within an AudioProvider");
+  }
+  return context;
+};

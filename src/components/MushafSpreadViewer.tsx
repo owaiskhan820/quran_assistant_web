@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
-import { useAudio } from "@/hooks/useAudio";
+import { useAudioContext } from "@/context/AudioContext";
 import type { MushafLine } from "@/types/mushaf";
 import { getJuzForPage } from "@/utils/juz";
 import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
@@ -41,14 +41,14 @@ function getWordAudioUrl(location: string): string | null {
 function FifteenLineGrid({
   pageNumber,
   lines,
-  audioData,
-  playAudio,
+  playAyah,
+  playUrl,
   activeId,
 }: {
   pageNumber: number;
   lines: MushafLine[];
-  audioData: any;
-  playAudio: (url: string, id: string) => void;
+  playAyah: (surah: number, ayah: number) => void;
+  playUrl: (url: string, id: string) => void;
   activeId: string | null;
 }) {
   function Basmalah() {
@@ -121,17 +121,16 @@ function FifteenLineGrid({
             <div className="h-full w-full" />
           ) : (
             line.words.map((word, idx) => {
-              const ayahAudio = audioData?.verseAudio?.[`${word.s}:${word.a}`];
               const isWordActive = activeId === word.l;
               const isAyahActive = activeId === `${word.s}:${word.a}`;
               const isActive = isWordActive || (word.isStopSign && isAyahActive);
               
               const handlePlay = () => {
-                if (word.isStopSign && ayahAudio) {
-                  playAudio(ayahAudio, `${word.s}:${word.a}`);
+                if (word.isStopSign) {
+                  playAyah(parseInt(word.s), parseInt(word.a));
                 } else if (!word.isStopSign) {
                   const url = getWordAudioUrl(word.l);
-                  if (url) playAudio(url, word.l);
+                  if (url) playUrl(url, word.l);
                 }
               };
 
@@ -159,7 +158,6 @@ function FifteenLineGrid({
                     color: isActive 
                       ? "var(--primary)" 
                       : (word.isStopSign ? "var(--primary)" : "inherit"),
-                    opacity: isActive ? 1 : (word.isStopSign ? 0.7 : 1),
                   }}
                   title={word.l}
                 >
@@ -190,53 +188,8 @@ export default function MushafSpreadViewer({
   leftLines,
 }: MushafSpreadViewerProps) {
   const router = useRouter();
-  const { playAudio, activeId } = useAudio();
-  const [audioData, setAudioData] = useState<{
-    verseAudio: Record<string, string>;
-  }>({ verseAudio: {} });
+  const { playAyah, playUrl, activeId } = useAudioContext();
 
-  useEffect(() => {
-    async function fetchAudioDataForPage(page: number) {
-      try {
-        const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${page}?recitation=7&audio=7`);
-        const data = await res.json();
-        
-        const newVerseAudio: Record<string, string> = {};
-
-        data.verses.forEach((verse: any) => {
-          // Map Ayah Audio
-          if (verse.audio?.url) {
-            // Prefix with https: if the API returns a relative protocol //audio...
-            const ayahUrl = verse.audio.url.startsWith("http") 
-              ? verse.audio.url 
-              : `https:${verse.audio.url}`;
-            newVerseAudio[verse.verse_key] = ayahUrl;
-          }
-        });
-
-        console.log(`Verse audio data fetched for page ${page}:`, Object.keys(newVerseAudio).length, "verses");
-        return { newVerseAudio };
-      } catch (error) {
-        console.error(`Failed to fetch audio for page ${page}:`, error);
-        return { newVerseAudio: {} };
-      }
-    }
-
-    async function loadAllAudio() {
-      console.log("Loading verse audio for pages:", rightPage, leftPage);
-      const results = await Promise.all([
-        fetchAudioDataForPage(rightPage),
-        fetchAudioDataForPage(leftPage)
-      ]);
-
-      setAudioData({
-        verseAudio: { ...results[0].newVerseAudio, ...results[1].newVerseAudio }
-      });
-      console.log("Audio data state updated.");
-    }
-
-    loadAllAudio();
-  }, [rightPage, leftPage]);
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -407,8 +360,8 @@ export default function MushafSpreadViewer({
                   <FifteenLineGrid 
                     pageNumber={page.pageNumber} 
                     lines={page.lines}
-                    audioData={audioData}
-                    playAudio={playAudio}
+                    playAyah={playAyah}
+                    playUrl={playUrl}
                     activeId={activeId}
                   />
                 </div>
