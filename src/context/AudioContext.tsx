@@ -28,8 +28,8 @@ interface AudioContextType {
   isAutoplay: boolean;
   reciterId: number;
   reciters: Reciter[];
-  playAyah: (surah: number, ayah: number) => void;
-  playUrl: (url: string, id: string) => void;
+  playAyah: (surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number) => void;
+  playUrl: (url: string, id: string, surah?: number, ayah?: number) => void;
   togglePlay: () => void;
   toggleAutoplay: () => void;
   playNextAyah: () => void;
@@ -43,6 +43,16 @@ interface AudioContextType {
   setTranslationId: (id: number) => void;
   translationText: string | null;
   translations: Translation[];
+
+  // Repeat Feature
+  repeatMode: 'none' | 'single' | 'range';
+  setRepeatMode: (mode: 'none' | 'single' | 'range') => void;
+  repeatCount: number;
+  setRepeatCount: (count: number) => void;
+  repeatRange: { start: AyahId | null, end: AyahId | null };
+  setRepeatRange: (range: { start: AyahId | null, end: AyahId | null }) => void;
+  currentRepeatIndex: number;
+  rangeCycleIndex: number;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -88,16 +98,34 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wordTranslations, setWordTranslations] = useState<Record<string, string>>({});
   const [translationId, setTranslationId] = useState(20);
   const [translationText, setTranslationText] = useState<string | null>(null);
+  
+  // Repeat System State
+  const [repeatMode, setRepeatMode] = useState<'none' | 'single' | 'range'>('none');
+  const [repeatCount, setRepeatCount] = useState(1); // 1 = play once (no repeat), but user logic says "Repeat X times"
+  const [repeatRange, setRepeatRange] = useState<{ start: AyahId | null, end: AyahId | null }>({ start: null, end: null });
+  const [currentRepeatIndex, setCurrentRepeatIndex] = useState(0);
+  const [rangeCycleIndex, setRangeCycleIndex] = useState(0);
+
   const fetchedPages = useRef<Set<number>>(new Set());
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAutoplayRef = useRef(isAutoplay);
   const currentAyahRef = useRef(currentAyah);
+  const repeatModeRef = useRef(repeatMode);
+  const repeatCountRef = useRef(repeatCount);
+  const repeatRangeRef = useRef(repeatRange);
+  const currentRepeatIndexRef = useRef(currentRepeatIndex);
+  const rangeCycleIndexRef = useRef(rangeCycleIndex);
 
   useEffect(() => {
     isAutoplayRef.current = isAutoplay;
     currentAyahRef.current = currentAyah;
-  }, [isAutoplay, currentAyah]);
+    repeatModeRef.current = repeatMode;
+    repeatCountRef.current = repeatCount;
+    repeatRangeRef.current = repeatRange;
+    currentRepeatIndexRef.current = currentRepeatIndex;
+    rangeCycleIndexRef.current = rangeCycleIndex;
+  }, [isAutoplay, currentAyah, repeatMode, repeatCount, repeatRange, currentRepeatIndex, rangeCycleIndex]);
 
   useEffect(() => {
     const audio = new Audio();
@@ -107,11 +135,66 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => {
       setIsPlaying(false);
-      // Use refs to get latest state without effect re-runs
-      if (isAutoplayRef.current && currentAyahRef.current) {
-        // Trigger next ayah via a small delay or direct call
-        // We'll call playNextAyah logic directly here to be safe
-        const current = currentAyahRef.current;
+      
+      const mode = repeatModeRef.current;
+      const count = repeatCountRef.current;
+      const range = repeatRangeRef.current;
+      const currentIndex = currentRepeatIndexRef.current;
+      const current = currentAyahRef.current;
+
+      if (!current) return;
+
+      // 1. REPEAT LOGIC (Takes precedence over Autoplay)
+      if (mode === 'single') {
+        // count 0 is infinity
+        if (count === 0 || currentIndex < count) {
+          setCurrentRepeatIndex(prev => prev + 1);
+          playAyahRef.current?.(current.surah, current.ayah, true);
+          return;
+        } else {
+          // Finished repeating current block
+          setCurrentRepeatIndex(0);
+          // In 'single' mode, we just stop here if autoplay is off, 
+          // or continue to next if autoplay is on (handled below)
+        }
+      } else if (mode === 'range' && range.start && range.end) {
+        // Nested Repetition: Repeat current ayah X times, then move to next
+        if (count === 0 || currentIndex < count) {
+          setCurrentRepeatIndex(prev => prev + 1);
+          playAyahRef.current?.(current.surah, current.ayah, true);
+          return;
+        } else {
+          // Finished this specific ayah's repeats, move to next
+          setCurrentRepeatIndex(0);
+          
+          const isAtEnd = current.surah === range.end.surah && current.ayah === range.end.ayah;
+          if (isAtEnd) {
+            // Whole range completed, loop back and increment cycle
+            setRangeCycleIndex(prev => prev + 1);
+            playAyahRef.current?.(range.start.surah, range.start.ayah, true);
+            return;
+          } else {
+            // Move to next ayah in range (restricted to current surah as per user request)
+            const nextAyah = current.ayah + 1;
+            
+            // Check if nextAyah is still within the surah and doesn't exceed range.end
+            const chapter = chaptersData.chapters.find(c => c.id === current.surah);
+            if (chapter && nextAyah <= chapter.verses_count && nextAyah <= range.end.ayah) {
+              playAyahRef.current?.(current.surah, nextAyah, true);
+              return;
+            } else {
+              // This case shouldn't happen with proper range selection, 
+              // but if it does, loop back to start
+              setRangeCycleIndex(prev => prev + 1);
+              playAyahRef.current?.(range.start.surah, range.start.ayah, true);
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. AUTOPLAY LOGIC
+      if (isAutoplayRef.current) {
         const chapter = chaptersData.chapters.find(c => c.id === current.surah);
         if (chapter) {
           let nextSurah = current.surah;
@@ -150,6 +233,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const ayahKey = `${surah}:${ayah}`;
     setCurrentAyah({ surah, ayah });
     setActiveId(ayahKey);
+    
+    // Reset repeat indices when a new ayah is played manually
+    setCurrentRepeatIndex(0);
+    setRangeCycleIndex(0);
 
     try {
       const res = await fetch(`https://api.quran.com/api/v4/verses/by_key/${ayahKey}?audio=${targetReciterId}`);
@@ -196,8 +283,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playAyahRef.current = playAyah;
   }, [playAyah]);
 
-  const playUrl = useCallback((url: string, id: string) => {
+  const playUrl = useCallback((url: string, id: string, surah?: number, ayah?: number) => {
     if (!audioRef.current) return;
+    
+    // Sync the current ayah state so the Media Player shows the correct translation
+    if (surah && ayah) {
+      setCurrentAyah({ surah, ayah });
+    }
 
     if (audioRef.current.src !== url) {
       audioRef.current.src = url;
@@ -285,10 +377,28 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentAyah(null);
     setActiveId(null);
     setIsPlaying(false);
+    
+    // Reset repeat settings when player is closed
+    setRepeatMode('none');
+    setRepeatCount(1);
+    setRepeatRange({ start: null, end: null });
+    setCurrentRepeatIndex(0);
+    setRangeCycleIndex(0);
   }, []);
 
   const toggleAutoplay = useCallback(() => {
-    setIsAutoplay(prev => !prev);
+    setIsAutoplay(prev => {
+      const newVal = !prev;
+      if (newVal) setRepeatMode('none');
+      return newVal;
+    });
+  }, []);
+
+  const handleSetRepeatMode = useCallback((mode: 'none' | 'single' | 'range') => {
+    setRepeatMode(mode);
+    if (mode !== 'none') setIsAutoplay(false);
+    setCurrentRepeatIndex(0);
+    setRangeCycleIndex(0);
   }, []);
 
   const setReciter = useCallback((id: number) => {
@@ -343,7 +453,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   useEffect(() => {
-    if (currentAyah) {
+    if (currentAyah && translationId !== 0) {
       fetchAyahTranslation(currentAyah.surah, currentAyah.ayah, translationId);
     } else {
       setTranslationText(null);
@@ -373,6 +483,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTranslationId,
         translationText,
         translations: TRANSLATIONS,
+        repeatMode,
+        setRepeatMode: handleSetRepeatMode,
+        repeatCount,
+        setRepeatCount,
+        repeatRange,
+        setRepeatRange,
+        currentRepeatIndex,
+        rangeCycleIndex,
       }}
     >
       {children}

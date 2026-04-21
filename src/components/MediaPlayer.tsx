@@ -1,6 +1,7 @@
 "use client";
 
 import { useAudioContext } from "@/context/AudioContext";
+import chaptersData from "../../public/data/chapters/chapters.json";
 import { getSurahNameArabic } from "@/utils/surah";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -14,9 +15,11 @@ import {
   RefreshCcw,
   Languages,
   SkipBack,
-  SkipForward
+  SkipForward,
+  Repeat,
+  Repeat1
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function MediaPlayer() {
   const { 
@@ -34,16 +37,49 @@ export default function MediaPlayer() {
     translationId,
     setTranslationId,
     translationText,
-    translations
+    translations,
+    playAyah
   } = useAudioContext();
 
   const [isReciterMenuOpen, setIsReciterMenuOpen] = useState(false);
   const [isTranslationMenuOpen, setIsTranslationMenuOpen] = useState(false);
+  const [isRepeatMenuOpen, setIsRepeatMenuOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const {
+    repeatMode,
+    setRepeatMode,
+    repeatCount,
+    setRepeatCount,
+    repeatRange,
+    setRepeatRange,
+    currentRepeatIndex,
+    rangeCycleIndex
+  } = useAudioContext();
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsReciterMenuOpen(false);
+        setIsTranslationMenuOpen(false);
+        setIsRepeatMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   // Close menus when ayah changes or player is closed
   useEffect(() => {
     setIsReciterMenuOpen(false);
     setIsTranslationMenuOpen(false);
+    setIsRepeatMenuOpen(false);
   }, [currentAyah?.surah, currentAyah?.ayah]);
 
   if (!currentAyah) return null;
@@ -53,12 +89,20 @@ export default function MediaPlayer() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[95vw] max-w-md"
+        drag
+        dragMomentum={false}
+        dragElastic={0.1}
+        dragConstraints={{ top: -1000, left: -1000, right: 1000, bottom: 0 }}
+        initial={{ y: 100, opacity: 0, x: "-50%" }}
+        animate={{ y: 0, opacity: 1, x: "-50%" }}
+        exit={{ y: 100, opacity: 0, x: "-50%" }}
+        whileDrag={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}
+        className="fixed bottom-6 left-1/2 z-[100] w-[95vw] max-w-md touch-none"
       >
-        <div className="relative bg-white/80 backdrop-blur-xl border border-primary/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-3xl p-4 flex flex-col gap-3 overflow-visible">
+        <div ref={containerRef} className="relative bg-white/85 backdrop-blur-2xl border border-primary/15 shadow-[0_12px_40px_rgba(0,0,0,0.15)] rounded-[2.5rem] p-4 flex flex-col gap-3 overflow-visible">
+          
+          {/* Drag Handle Indicator */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full opacity-50 mb-1 pointer-events-none" />
           
           {/* Qari Selector Popup (Centralized) */}
           <AnimatePresence mode="wait">
@@ -111,6 +155,18 @@ export default function MediaPlayer() {
                 <div className="sticky top-0 bg-white/90 backdrop-blur-sm px-4 py-2 border-b border-gray-50 mb-1 z-10">
                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Choose Translation</span>
                 </div>
+                <div className="px-1 border-b border-gray-50 pb-1 mb-1">
+                  <button
+                    onClick={() => {
+                      setTranslationId(0);
+                      setIsTranslationMenuOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-gray-50 rounded-xl transition-colors ${translationId === 0 ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500'}`}
+                  >
+                    <span className="text-sm">Turn Off Translation</span>
+                    {translationId === 0 && <Check size={14} />}
+                  </button>
+                </div>
                 <div className="px-1">
                   {translations.map((t) => (
                     <button
@@ -134,6 +190,134 @@ export default function MediaPlayer() {
                       )}
                     </button>
                   ))}
+                </div>
+              </motion.div>
+            )}
+
+            {isRepeatMenuOpen && (
+              <motion.div
+                key="repeat-menu"
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-4 z-50 px-4"
+              >
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-muted uppercase tracking-wider block">Repeat Settings</span>
+                    <button 
+                      onClick={() => setIsRepeatMenuOpen(false)}
+                      className="p-1 hover:bg-black/5 rounded-full text-muted transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-3">Repeat Mode</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => setRepeatMode('none')}
+                        className={`py-2 px-1 text-xs rounded-xl border transition-all ${repeatMode === 'none' ? 'bg-primary text-white border-primary shadow-md' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                      >
+                        Off
+                      </button>
+                      <button
+                        onClick={() => setRepeatMode('single')}
+                        className={`py-2 px-1 text-xs rounded-xl border transition-all ${repeatMode === 'single' ? 'bg-primary text-white border-primary shadow-md' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                      >
+                        Current
+                      </button>
+                      <button
+                        onClick={() => setRepeatMode('range')}
+                        className={`py-2 px-1 text-xs rounded-xl border transition-all ${repeatMode === 'range' ? 'bg-primary text-white border-primary shadow-md' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                      >
+                        Range
+                      </button>
+                    </div>
+                  </div>
+
+                  {repeatMode !== 'none' && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                      <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-3">Repetitions</span>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                        {[1, 2, 3, 5, 10, 0].map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => setRepeatCount(c)}
+                            className={`py-2 text-xs rounded-lg border transition-all ${repeatCount === c ? 'bg-primary/10 text-primary border-primary/20 font-bold' : 'border-gray-100 hover:bg-gray-50 text-gray-500'}`}
+                          >
+                            {c === 0 ? '∞' : `${c}x`}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {repeatMode === 'range' && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col gap-3 pt-2 border-t border-gray-50">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs font-bold text-muted uppercase tracking-wider block">Select Range</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <span className="text-[10px] text-gray-400 block mb-1">From Ayah</span>
+                            <select 
+                              value={repeatRange.start?.ayah || currentAyah.ayah}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                // 1. Update the range start
+                                setRepeatRange({ 
+                                  ...repeatRange, 
+                                  start: { surah: currentAyah.surah, ayah: val } 
+                                });
+                                // 2. Update the player's current ayah to match
+                                playAyah(currentAyah.surah, val, isPlaying);
+                              }}
+                              className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary/20 outline-none"
+                            >
+                              <option value="" disabled>Start...</option>
+                              {Array.from({ length: chaptersData.chapters.find(c => c.id === currentAyah.surah)?.verses_count || 0 }, (_, i) => i + 1).map(n => (
+                                <option key={n} value={n}>{n}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex-1">
+                            <span className="text-[10px] text-gray-400 block mb-1">To Ayah</span>
+                            <select 
+                              value={repeatRange.end?.ayah || ""}
+                              onChange={(e) => {
+                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                setRepeatRange({ 
+                                  ...repeatRange, 
+                                  end: val ? { surah: currentAyah.surah, ayah: val } : null 
+                                });
+                              }}
+                              className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary/20 outline-none"
+                            >
+                              <option value="">End...</option>
+                              {Array.from({ length: chaptersData.chapters.find(c => c.id === currentAyah.surah)?.verses_count || 0 }, (_, i) => i + 1).map(n => (
+                                <option key={n} value={n}>{n}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {repeatMode !== 'none' && (
+                    <div className="bg-primary/5 rounded-lg p-2 text-center flex flex-col gap-1">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[10px] text-primary/60 uppercase font-bold tracking-wider">Verse Repeat</span>
+                        <span className="text-xs text-primary font-bold">{currentRepeatIndex + 1} / {repeatCount === 0 ? '∞' : repeatCount + 1}</span>
+                      </div>
+                      {repeatMode === 'range' && (
+                         <div className="flex justify-between items-center px-1 border-t border-primary/10 pt-1">
+                           <span className="text-[10px] text-primary/60 uppercase font-bold tracking-wider">Range Cycle</span>
+                           <span className="text-xs text-primary font-bold">{rangeCycleIndex + 1}</span>
+                         </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -162,7 +346,7 @@ export default function MediaPlayer() {
           </div>
 
           {/* Translation Text Display */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {currentAyah && translationText && (
               <motion.div
                 key={`${currentAyah.surah}:${currentAyah.ayah}-${translationId}`}
@@ -197,6 +381,7 @@ export default function MediaPlayer() {
                 onClick={() => {
                   setIsReciterMenuOpen(!isReciterMenuOpen);
                   setIsTranslationMenuOpen(false);
+                  setIsRepeatMenuOpen(false);
                 }}
                 className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${isReciterMenuOpen ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/10 text-primary'}`}
                 title="Choose Qari"
@@ -209,6 +394,7 @@ export default function MediaPlayer() {
                 onClick={() => {
                   setIsTranslationMenuOpen(!isTranslationMenuOpen);
                   setIsReciterMenuOpen(false);
+                  setIsRepeatMenuOpen(false);
                 }}
                 className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${isTranslationMenuOpen ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-primary/10 text-primary'}`}
                 title="Choose Translation"
@@ -248,17 +434,28 @@ export default function MediaPlayer() {
             {/* Autoplay Toggle */}
             <button 
               onClick={toggleAutoplay}
-              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${isAutoplay ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-black/5'}`}
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${isAutoplay ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-black/5'}`}
               title={isAutoplay ? "Autoplay On" : "Autoplay Off"}
             >
               <RefreshCcw size={20} className={isAutoplay ? 'animate-spin-slow' : ''} />
-              {isAutoplay && <span className="text-xs font-bold uppercase tracking-tighter">Auto</span>}
+            </button>
+
+            {/* Repeat Toggle */}
+            <button 
+              onClick={() => {
+                setIsRepeatMenuOpen(!isRepeatMenuOpen);
+                setIsReciterMenuOpen(false);
+                setIsTranslationMenuOpen(false);
+              }}
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${repeatMode !== 'none' ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-black/5'}`}
+              title="Repeat Settings"
+            >
+              {repeatMode === 'single' ? <Repeat1 size={20} /> : <Repeat size={20} />}
             </button>
 
           </div>
         </div>
-      </motion.div>
+        </motion.div>
     </AnimatePresence>
   );
 }
-

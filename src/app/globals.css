@@ -63,6 +63,19 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
+
+  --animate-arrow-pulse-left: arrow-pulse-left 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+  --animate-arrow-pulse-right: arrow-pulse-right 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+
+  @keyframes arrow-pulse-left {
+    0% { transform: translateX(10px) translateY(-50%); opacity: 0.2; }
+    100% { transform: translateX(-5px) translateY(-50%); opacity: 1; }
+  }
+
+  @keyframes arrow-pulse-right {
+    0% { transform: translateX(-10px) translateY(-50%); opacity: 0.2; }
+    100% { transform: translateX(5px) translateY(-50%); opacity: 1; }
+  }
 }
 
 

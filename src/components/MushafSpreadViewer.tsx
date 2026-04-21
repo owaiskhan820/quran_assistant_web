@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useTransition, useCallback, memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import { useAudioContext } from "@/context/AudioContext";
 import type { MushafLine } from "@/types/mushaf";
 import { getJuzForPage } from "@/utils/juz";
 import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
+import MushafSkeleton from "@/components/MushafSkeleton";
 
 function buildPageFontCss(pageNumbers: number[]): string {
   const uniquePages = [...new Set(pageNumbers)].sort((a, b) => a - b);
@@ -38,7 +39,7 @@ function getWordAudioUrl(location: string): string | null {
   return `https://audio.qurancdn.com/wbw/${s}_${a}_${w}.mp3`;
 }
 
-function FifteenLineGrid({
+const FifteenLineGrid = memo(function FifteenLineGrid({
   pageNumber,
   lines,
 }: {
@@ -46,6 +47,23 @@ function FifteenLineGrid({
   lines: MushafLine[];
 }) {
   const { playAyah, playUrl, activeId, wordTranslations } = useAudioContext();
+  const [isFontLoaded, setIsFontLoaded] = useState(false);
+
+  useEffect(() => {
+    setIsFontLoaded(false);
+    const fontName = `p${pageNumber}`;
+    const font = new FontFace(fontName, `url(/fonts/qpc/p${pageNumber}.woff2)`);
+    
+    // Safety check with document.fonts
+    document.fonts.load(`1em ${fontName}`).then(() => {
+      // Small delay to ensure browser layout engine settles
+      setTimeout(() => setIsFontLoaded(true), 50);
+    }).catch(() => {
+      // Fallback for unexpected failures
+      setTimeout(() => setIsFontLoaded(true), 2500);
+    });
+  }, [pageNumber]);
+
   function Basmalah() {
     return (
       <div className="flex w-full items-center justify-center py-2 text-black">
@@ -69,14 +87,30 @@ function FifteenLineGrid({
   const isShortPage = linesToRender.length < 15;
 
   return (
-    <div
-      dir="rtl"
-      className={isShortPage
-        ? "flex flex-col justify-center h-full w-full gap-5 py-12"
-        : "grid h-full w-full grid-rows-15"
-      }
-      style={{ fontFamily: `p${pageNumber}` }}
-    >
+    <div className="relative w-full h-full">
+      {/* 1. SKELETON UNDERLAY (Visible while loading) */}
+      <AnimatePresence>
+        {!isFontLoaded && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-0"
+          >
+            <MushafSkeleton />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. ACTUAL CONTENT (Hidden until fonts load) */}
+      <div
+        dir="rtl"
+        className={`${isShortPage
+          ? "flex flex-col justify-center h-full w-full gap-5 py-12"
+          : "grid h-full w-full grid-rows-15"
+          } transition-opacity duration-300 ${isFontLoaded ? "opacity-100" : "opacity-0"}`}
+        style={{ fontFamily: `p${pageNumber}` }}
+      >
       {linesToRender.map((line, lineIdx) => (
         <div
           key={line.line}
@@ -125,7 +159,7 @@ function FifteenLineGrid({
                   playAyah(parseInt(word.s), parseInt(word.a));
                 } else if (!word.isStopSign) {
                   const url = getWordAudioUrl(word.l);
-                  if (url) playUrl(url, word.l);
+                  if (url) playUrl(url, word.l, parseInt(word.s), parseInt(word.a));
                 }
               };
 
@@ -165,9 +199,10 @@ function FifteenLineGrid({
           )}
         </div>
       ))}
+      </div>
     </div>
   );
-}
+});
 
 function WordTooltip({
   children,
@@ -255,6 +290,9 @@ export default function MushafSpreadViewer({
   leftLines,
 }: MushafSpreadViewerProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
+  const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
   const { playAyah, playUrl, activeId, wordTranslations, fetchWordTranslations } = useAudioContext();
 
   useEffect(() => {
@@ -262,6 +300,52 @@ export default function MushafSpreadViewer({
     if (leftPage && leftPage !== rightPage) fetchWordTranslations(leftPage);
   }, [rightPage, leftPage, fetchWordTranslations]);
 
+  // Font Pre-activation (Zero Delay Optimization)
+  useEffect(() => {
+    const neighbors = [
+      rightPage - 2, 
+      rightPage - 1, 
+      leftPage + 1, 
+      leftPage + 2
+    ].filter(p => p >= 1 && p <= 604);
+
+    neighbors.forEach(p => {
+      // Background load to "warm up" the font cache before the user swipes
+      document.fonts.load(`1em p${p}`).catch(() => {});
+    });
+  }, [rightPage, leftPage]);
+
+  const navigateToPage = useCallback((pageTarget: number) => {
+    if (isPending) return;
+    if (pageTarget > 604) {
+      setBoundaryFlash('end');
+      setTimeout(() => setBoundaryFlash(null), 400);
+      return;
+    }
+    if (pageTarget < 1) {
+      setBoundaryFlash('start');
+      setTimeout(() => setBoundaryFlash(null), 400);
+      return;
+    }
+    setPendingDirection(pageTarget > requestedPage ? 'next' : 'prev');
+    startTransition(() => {
+      router.push(`/page/${pageTarget}`);
+    });
+  }, [isPending, requestedPage, router]);
+
+  // Keyboard Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        navigateToPage(requestedPage + 1);
+      } else if (e.key === "ArrowRight") {
+        navigateToPage(requestedPage - 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [requestedPage, navigateToPage]);
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -269,29 +353,32 @@ export default function MushafSpreadViewer({
   const minSwipeDistance = 50;
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isPending) return;
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (isPending) return;
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd || isPending) return;
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
     if (isRightSwipe && requestedPage < 604) {
-      router.push(`/page/${requestedPage + 1}`);
+      navigateToPage(requestedPage + 1);
     } else if (isLeftSwipe && requestedPage > 1) {
-      router.push(`/page/${requestedPage - 1}`);
+      navigateToPage(requestedPage - 1);
     }
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    if (isWheelLocked.current) return;
+    // If we're already loading the next page, or wheel is locked, ignore scroll.
+    if (isWheelLocked.current || isPending) return;
 
     const threshold = 40; // Sensitivity threshold for deltaX
     const { deltaX, deltaY } = e;
@@ -300,21 +387,19 @@ export default function MushafSpreadViewer({
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > threshold) {
       isWheelLocked.current = true;
 
-      // Map deltaX to the existing swipe logic
-      // deltaX > 0 is scroll right (swipe left)
-      // deltaX < 0 is scroll left (swipe right)
-      if (deltaX < 0 && requestedPage < 604) {
-        // Equivalent to isRightSwipe
-        router.push(`/page/${requestedPage + 1}`);
-      } else if (deltaX > 0 && requestedPage > 1) {
-        // Equivalent to isLeftSwipe
-        router.push(`/page/${requestedPage - 1}`);
+      // RTL Trackpad Logic:
+      // deltaX > 0: Swipe Left (Next Page)
+      // deltaX < 0: Swipe Right (Prev Page)
+      if (deltaX > 0 && requestedPage < 604) {
+        navigateToPage(requestedPage + 1);
+      } else if (deltaX < 0 && requestedPage > 1) {
+        navigateToPage(requestedPage - 1);
       }
 
-      // Lock navigation for 600ms to allow the trackpad gesture to finish
+      // Lock navigation for 800ms to ensure animation completes and trackpad inertia dies down
       setTimeout(() => {
         isWheelLocked.current = false;
-      }, 600);
+      }, 800);
     }
   };
 
@@ -388,6 +473,46 @@ export default function MushafSpreadViewer({
       <QpcFontStyleRegistry cssText={fontCss} preloadPages={preloadPages} />
 
       <div className="w-full max-w-[280dvh] flex-1 flex items-center justify-center relative">
+        {/* THE MOMENTUM ARROWS (Moved to root stacking context for desktop visibility) */}
+        <AnimatePresence>
+          {isPending && pendingDirection === 'next' && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute left-4 lg:left-10 top-1/2 -translate-y-1/2 z-[100] pointer-events-none animate-arrow-pulse-left lg:hidden"
+            >
+              <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
+                <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
+              </div>
+            </motion.div>
+          )}
+          {isPending && pendingDirection === 'prev' && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute right-4 lg:right-10 top-1/2 -translate-y-1/2 z-[100] pointer-events-none animate-arrow-pulse-right lg:hidden"
+            >
+              <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
+                <span className="text-5xl leading-none -ml-1 mb-1 font-light">‹</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* THE BOUNDARY FEEDBACK */}
+        <AnimatePresence>
+          {boundaryFlash && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[101] pointer-events-none rounded-sm border-8 border-red-500/20 bg-red-500/5 mix-blend-multiply"
+            />
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
           <motion.section
             key={`${rightPage}-${leftPage}`}
@@ -408,12 +533,15 @@ export default function MushafSpreadViewer({
             {/* The Spine shadow */}
             <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1px] -translate-x-1/2 bg-divider/50 shadow-[0_0_20px_10px_rgba(var(--primary-rgb),0.08)] lg:block z-20" />
 
+
+
             {pages.map((page) => (
               <article
                 key={page.pageNumber}
                 style={{ backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
-                className={`relative mx-0 w-full max-w-137.5 lg:rounded-sm bg-surface shadow-[0_0_40px_rgba(var(--primary-rgb),0.16)] lg:border lg:border-primary/10 flex-col pt-3 pb-1 h-full 
+                className={`relative mx-0 w-full max-w-137.5 lg:rounded-sm bg-surface shadow-[0_0_40px_rgba(var(--primary-rgb),0.16)] lg:border lg:border-primary/10 flex-col pt-3 pb-1 h-full transition-all duration-300
                   ${page.pageNumber === requestedPage ? "flex flex-1" : "hidden lg:flex flex-1"}
+                  ${isPending ? "opacity-70 blur-[1px] scale-[0.99]" : "opacity-100 scale-100"}
                 `}
               >
                 {/* Celestial Header Slot - with backdrop blur and transparency */}
@@ -479,7 +607,16 @@ export default function MushafSpreadViewer({
         {nextPageHref ? (
           <Link
             href={nextPageHref}
-            className="pointer-events-auto rounded-2xl border border-divider bg-surface/90 backdrop-blur-md px-4 py-12 text-4xl font-semibold text-muted-dark shadow-2xl hover:bg-primary hover:text-white hover:border-primary hover:scale-105 transition-all active:scale-95 flex items-center justify-center min-w-[64px]"
+            prefetch={true}
+            onClick={(e) => {
+              e.preventDefault();
+              navigateToPage(rightPage + 2);
+            }}
+            className={`pointer-events-auto rounded-2xl border backdrop-blur-md px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
+              ${isPending && pendingDirection === 'next'
+                ? "bg-primary text-white border-primary scale-105 animate-pulse"
+                : "border-divider bg-surface/90 text-muted-dark hover:bg-primary hover:text-white hover:border-primary hover:scale-105"
+              }`}
             aria-label="Next spread"
           >
             ‹
@@ -488,12 +625,27 @@ export default function MushafSpreadViewer({
         {previousPageHref ? (
           <Link
             href={previousPageHref}
-            className="pointer-events-auto rounded-2xl border border-divider bg-surface/90 backdrop-blur-md px-4 py-12 text-4xl font-semibold text-muted-dark shadow-2xl hover:bg-primary hover:text-white hover:border-primary hover:scale-105 transition-all active:scale-95 flex items-center justify-center min-w-[64px]"
+            prefetch={true}
+            onClick={(e) => {
+              e.preventDefault();
+              navigateToPage(rightPage - 2);
+            }}
+            className={`pointer-events-auto rounded-2xl border backdrop-blur-md px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
+              ${isPending && pendingDirection === 'prev'
+                ? "bg-primary text-white border-primary scale-105 animate-pulse"
+                : "border-divider bg-surface/90 text-muted-dark hover:bg-primary hover:text-white hover:border-primary hover:scale-105"
+              }`}
             aria-label="Previous spread"
           >
             ›
           </Link>
         ) : <div />}
+      </div>
+
+      {/* Hidden Mobile Prefetch Links */}
+      <div className="hidden">
+        {requestedPage < 604 && <Link href={`/page/${requestedPage + 1}`} prefetch={true}>Next</Link>}
+        {requestedPage > 1 && <Link href={`/page/${requestedPage - 1}`} prefetch={true}>Prev</Link>}
       </div>
 
       {/* Mobile Navigation replaced by swiping logic directly on main tag */}
