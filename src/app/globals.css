@@ -21,7 +21,11 @@
 @font-face {
   font-family: "UrduNastaleeq";
   src: url("/fonts/Urdu/Al Qalam Taj Nastaleeq Regular - [UrduFonts.com].ttf") format("truetype");
-  font-display: swap;
+  font-display: block;
+}
+
+.font-arabic {
+  text-rendering: optimizeLegibility;
 }
 
 :root {

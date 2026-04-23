@@ -28,7 +28,7 @@ interface AudioContextType {
   isAutoplay: boolean;
   reciterId: number;
   reciters: Reciter[];
-  playAyah: (surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number) => void;
+  playAyah: (surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, keepIndices?: boolean) => void;
   playUrl: (url: string, id: string, surah?: number, ayah?: number) => void;
   togglePlay: () => void;
   toggleAutoplay: () => void;
@@ -93,10 +93,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentAyah, setCurrentAyah] = useState<AyahId | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoplay, setIsAutoplay] = useState(false);
+
+  // Persistent Settings
   const [reciterId, setReciterId] = useState(RECITERS[0].id);
+  const [translationId, setTranslationId] = useState(20);
+
+  // Hydration-safe persistent settings initialization
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedReciter = localStorage.getItem("defaultReciterId");
+      const savedTranslation = localStorage.getItem("defaultTranslationId");
+      
+      if (savedReciter) setReciterId(parseInt(savedReciter));
+      if (savedTranslation) setTranslationId(parseInt(savedTranslation));
+    }
+  }, []);
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const [wordTranslations, setWordTranslations] = useState<Record<string, string>>({});
-  const [translationId, setTranslationId] = useState(20);
   const [translationText, setTranslationText] = useState<string | null>(null);
   
   // Repeat System State
@@ -108,7 +122,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const fetchedPages = useRef<Set<number>>(new Set());
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
+  const wordAudioRef = useRef<HTMLAudioElement | null>(null);
   const isAutoplayRef = useRef(isAutoplay);
   const currentAyahRef = useRef(currentAyah);
   const repeatModeRef = useRef(repeatMode);
@@ -128,8 +143,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isAutoplay, currentAyah, repeatMode, repeatCount, repeatRange, currentRepeatIndex, rangeCycleIndex]);
 
   useEffect(() => {
-    const audio = new Audio();
-    audioRef.current = audio;
+    // 1. Initialize Ayah Audio (Main Player)
+    const ayahAudio = new Audio();
+    ayahAudioRef.current = ayahAudio;
+
+    // Hot Font Optimization: Pre-activate Urdu font immediately on mount
+    if (typeof window !== "undefined" && document.fonts) {
+      document.fonts.load('1em UrduNastaleeq')
+        .then(() => console.log("Urdu font (Al Qalam) pre-activated successfully."))
+        .catch(err => console.warn("Urdu font pre-activation failed:", err));
+    }
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -146,22 +169,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // 1. REPEAT LOGIC (Takes precedence over Autoplay)
       if (mode === 'single') {
-        // count 0 is infinity
-        if (count === 0 || currentIndex < count) {
+        if (count === 0 || (currentIndex + 1) < count) {
           setCurrentRepeatIndex(prev => prev + 1);
-          playAyahRef.current?.(current.surah, current.ayah, true);
+          playAyahRef.current?.(current.surah, current.ayah, true, undefined, true);
           return;
         } else {
-          // Finished repeating current block
           setCurrentRepeatIndex(0);
-          // In 'single' mode, we just stop here if autoplay is off, 
-          // or continue to next if autoplay is on (handled below)
         }
       } else if (mode === 'range' && range.start && range.end) {
-        // Nested Repetition: Repeat current ayah X times, then move to next
-        if (count === 0 || currentIndex < count) {
+        if (count === 0 || (currentIndex + 1) < count) {
           setCurrentRepeatIndex(prev => prev + 1);
-          playAyahRef.current?.(current.surah, current.ayah, true);
+          playAyahRef.current?.(current.surah, current.ayah, true, undefined, true);
           return;
         } else {
           // Finished this specific ayah's repeats, move to next
@@ -169,25 +187,44 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           
           const isAtEnd = current.surah === range.end.surah && current.ayah === range.end.ayah;
           if (isAtEnd) {
-            // Whole range completed, loop back and increment cycle
-            setRangeCycleIndex(prev => prev + 1);
-            playAyahRef.current?.(range.start.surah, range.start.ayah, true);
-            return;
-          } else {
-            // Move to next ayah in range (restricted to current surah as per user request)
-            const nextAyah = current.ayah + 1;
-            
-            // Check if nextAyah is still within the surah and doesn't exceed range.end
-            const chapter = chaptersData.chapters.find(c => c.id === current.surah);
-            if (chapter && nextAyah <= chapter.verses_count && nextAyah <= range.end.ayah) {
-              playAyahRef.current?.(current.surah, nextAyah, true);
+            if (count === 0) {
+              // Infinity: loop back to start
+              setRangeCycleIndex(prev => prev + 1);
+              playAyahRef.current?.(range.start.surah, range.start.ayah, true, undefined, true);
               return;
             } else {
-              // This case shouldn't happen with proper range selection, 
-              // but if it does, loop back to start
-              setRangeCycleIndex(prev => prev + 1);
-              playAyahRef.current?.(range.start.surah, range.start.ayah, true);
+              // Finished range: Pause without clearing state
+              if (ayahAudioRef.current) {
+                ayahAudioRef.current.pause();
+                ayahAudioRef.current.currentTime = 0;
+              }
+              setIsPlaying(false);
+              setCurrentRepeatIndex(0);
+              setRangeCycleIndex(0);
               return;
+            }
+          } else {
+            const nextAyah = current.ayah + 1;
+            const chapter = chaptersData.chapters.find(c => c.id === current.surah);
+            if (chapter && nextAyah <= chapter.verses_count && nextAyah <= range.end.ayah) {
+              playAyahRef.current?.(current.surah, nextAyah, true, undefined, true);
+              return;
+            } else {
+              // Out of range fallback: Pause if not infinity
+              if (count === 0) {
+                setRangeCycleIndex(prev => prev + 1);
+                playAyahRef.current?.(range.start.surah, range.start.ayah, true, undefined, true);
+                return;
+              } else {
+                if (ayahAudioRef.current) {
+                  ayahAudioRef.current.pause();
+                  ayahAudioRef.current.currentTime = 0;
+                }
+                setIsPlaying(false);
+                setCurrentRepeatIndex(0);
+                setRangeCycleIndex(0);
+                return;
+              }
             }
           }
         }
@@ -210,33 +247,66 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     };
 
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("ended", handleEnded);
+    ayahAudio.addEventListener("play", handlePlay);
+    ayahAudio.addEventListener("pause", handlePause);
+    ayahAudio.addEventListener("ended", handleEnded);
+
+    // 2. Initialize Word Audio
+    const wordAudio = new Audio();
+    wordAudioRef.current = wordAudio;
+
+    const handleWordEnded = () => {
+      // Restore ayah highlighting if it exists
+      if (currentAyahRef.current) {
+        setActiveId(`${currentAyahRef.current.surah}:${currentAyahRef.current.ayah}`);
+      } else {
+        setActiveId(null);
+      }
+    };
+
+    wordAudio.addEventListener("ended", handleWordEnded);
 
     return () => {
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("ended", handleEnded);
-      audio.pause();
-      audio.src = "";
+      ayahAudio.removeEventListener("play", handlePlay);
+      ayahAudio.removeEventListener("pause", handlePause);
+      ayahAudio.removeEventListener("ended", handleEnded);
+      ayahAudio.pause();
+      ayahAudio.src = "";
+
+      wordAudio.removeEventListener("ended", handleWordEnded);
+      wordAudio.pause();
+      wordAudio.src = "";
     };
   }, []); // Run only once
 
   const playPromiseRef = useRef<Promise<void> | null>(null);
-  const playAyahRef = useRef<(surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number) => void>(null);
+  const playAyahRef = useRef<(surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, keepIndices?: boolean) => void>(null);
 
-  const playAyah = useCallback(async (surah: number, ayah: number, shouldPlay = false, overrideReciterId?: number) => {
-    if (!audioRef.current) return;
+  const playAyah = useCallback(async (
+    surah: number, 
+    ayah: number, 
+    shouldPlay = false, 
+    overrideReciterId?: number,
+    keepIndices = false
+  ) => {
+    if (!ayahAudioRef.current) return;
+
+    // Stop word audio if playing
+    if (wordAudioRef.current) {
+      wordAudioRef.current.pause();
+      wordAudioRef.current.currentTime = 0;
+    }
 
     const targetReciterId = overrideReciterId || reciterId;
     const ayahKey = `${surah}:${ayah}`;
     setCurrentAyah({ surah, ayah });
     setActiveId(ayahKey);
     
-    // Reset repeat indices when a new ayah is played manually
-    setCurrentRepeatIndex(0);
-    setRangeCycleIndex(0);
+    // Reset repeat indices when a new ayah is played manually (keepIndices = false)
+    if (!keepIndices) {
+      setCurrentRepeatIndex(0);
+      setRangeCycleIndex(0);
+    }
 
     try {
       const res = await fetch(`https://api.quran.com/api/v4/verses/by_key/${ayahKey}?audio=${targetReciterId}`);
@@ -254,15 +324,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log(`Loading Ayah ${ayahKey} for Reciter ${targetReciterId}:`, url);
 
       // Force update src if reciter changed or src is different
-      if (audioRef.current.src !== url) {
-        audioRef.current.src = url;
-        audioRef.current.load(); // Ensure new source is loaded
+      if (ayahAudioRef.current.src !== url) {
+        ayahAudioRef.current.src = url;
+        ayahAudioRef.current.load(); // Ensure new source is loaded
       }
 
-      audioRef.current.currentTime = 0;
+      ayahAudioRef.current.currentTime = 0;
 
       if (shouldPlay) {
-        const playPromise = audioRef.current.play();
+        const playPromise = ayahAudioRef.current.play();
         playPromiseRef.current = playPromise;
 
         playPromise.catch(err => {
@@ -284,25 +354,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [playAyah]);
 
   const playUrl = useCallback((url: string, id: string, surah?: number, ayah?: number) => {
-    if (!audioRef.current) return;
+    if (!wordAudioRef.current) return;
     
-    // Sync the current ayah state so the Media Player shows the correct translation
-    if (surah && ayah) {
-      setCurrentAyah({ surah, ayah });
+    // Pause ayah audio if playing
+    if (ayahAudioRef.current && !ayahAudioRef.current.paused) {
+      ayahAudioRef.current.pause();
     }
 
-    if (audioRef.current.src !== url) {
-      audioRef.current.src = url;
+    if (wordAudioRef.current.src !== url) {
+      wordAudioRef.current.src = url;
     }
 
-    audioRef.current.currentTime = 0;
+    wordAudioRef.current.currentTime = 0;
     setActiveId(id);
 
-    const playPromise = audioRef.current.play();
-    playPromiseRef.current = playPromise;
+    const playPromise = wordAudioRef.current.play();
     playPromise.catch(err => {
       if (err.name !== "AbortError") {
-        console.error("Playback failed:", err);
+        console.error("Word playback failed:", err);
       }
     });
   }, []);
@@ -339,7 +408,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (prevAyah < 1) {
       if (prevSurah <= 1) {
         // At the beginning of the Quran
-        audioRef.current && (audioRef.current.currentTime = 0);
+        ayahAudioRef.current && (ayahAudioRef.current.currentTime = 0);
         return;
       }
       prevSurah -= 1;
@@ -351,15 +420,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [currentAyah, playAyah]);
 
   const togglePlay = useCallback(async () => {
-    if (!audioRef.current || !currentAyah) return;
+    if (!ayahAudioRef.current || !currentAyah) return;
+
+    // Stop word audio if playing
+    if (wordAudioRef.current) {
+      wordAudioRef.current.pause();
+      wordAudioRef.current.currentTime = 0;
+    }
 
     if (isPlaying) {
       if (playPromiseRef.current) {
         await playPromiseRef.current.catch(() => { });
       }
-      audioRef.current.pause();
+      ayahAudioRef.current.pause();
     } else {
-      const playPromise = audioRef.current.play();
+      const playPromise = ayahAudioRef.current.play();
       playPromiseRef.current = playPromise;
       playPromise.catch(err => {
         if (err.name !== "AbortError") {
@@ -370,9 +445,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isPlaying, currentAyah]);
 
   const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    if (ayahAudioRef.current) {
+      ayahAudioRef.current.pause();
+      ayahAudioRef.current.currentTime = 0;
+    }
+    if (wordAudioRef.current) {
+      wordAudioRef.current.pause();
+      wordAudioRef.current.currentTime = 0;
     }
     setCurrentAyah(null);
     setActiveId(null);
@@ -403,11 +482,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setReciter = useCallback((id: number) => {
     setReciterId(id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("defaultReciterId", id.toString());
+    }
     // If playing, restart current ayah with new reciter immediately
     if (currentAyah) {
       playAyah(currentAyah.surah, currentAyah.ayah, true, id);
     }
   }, [currentAyah, playAyah]);
+
+  const handleSetTranslationId = useCallback((id: number) => {
+    setTranslationId(id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("defaultTranslationId", id.toString());
+    }
+  }, []);
 
   const fetchWordTranslations = useCallback(async (pageNumber: number) => {
     if (fetchedPages.current.has(pageNumber)) return;
@@ -480,7 +569,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         wordTranslations,
         fetchWordTranslations,
         translationId,
-        setTranslationId,
+        setTranslationId: handleSetTranslationId,
         translationText,
         translations: TRANSLATIONS,
         repeatMode,

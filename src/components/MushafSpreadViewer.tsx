@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef, useTransition, useCallback, memo } from "react";
+import { useMemo, useState, useEffect, useLayoutEffect, useRef, useTransition, useCallback, memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -215,7 +215,9 @@ function WordTooltip({
 }) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState<"top" | "bottom">("top");
+  const [shift, setShift] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const handleToggle = (visible: boolean) => {
     // The Rule: Only flip if it's the absolute first line (index 0)
@@ -228,6 +230,25 @@ function WordTooltip({
     }
     setIsVisible(visible);
   };
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isVisible && tooltipRef.current) {
+      const rect = tooltipRef.current.getBoundingClientRect();
+      const padding = 12;
+      let newShift = 0;
+
+      if (rect.left < padding) {
+        newShift = padding - rect.left;
+      } else if (rect.right > window.innerWidth - padding) {
+        newShift = window.innerWidth - padding - rect.right;
+      }
+
+      setShift(newShift);
+    } else {
+      setShift(0);
+    }
+  }, [isVisible]);
 
   if (!translation) return <>{children}</>;
 
@@ -244,26 +265,39 @@ function WordTooltip({
       <AnimatePresence>
         {isVisible && (
           <motion.div
+            ref={tooltipRef}
             initial={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
-            animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1, 
+              y: 0,
+              x: `calc(-50% + ${shift}px)` 
+            }}
             exit={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className={`absolute ${isTop ? "bottom-full mb-3" : "top-full mt-3"} left-1/2 z-[9999] pointer-events-none`}
             style={{
               filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
               transformOrigin: isTop ? "bottom center" : "top center"
             }}
           >
-            <div className="bg-[#54948F] text-white text-sm px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg">
+            <div 
+              className="bg-[#54948F] text-white text-sm px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg"
+              dir="rtl"
+            >
               {translation}
               {/* Arrow */}
               <div
-                className={`absolute ${isTop ? "top-full" : "bottom-full"} left-1/2 -translate-x-1/2 w-0 h-0 
+                className={`absolute ${isTop ? "top-full" : "bottom-full"} left-1/2 w-0 h-0 
                           border-l-[6px] border-l-transparent 
                           border-r-[6px] border-r-transparent 
                           ${isTop
                     ? "border-t-[6px] border-t-[#54948F]"
                     : "border-b-[6px] border-b-[#54948F]"}`}
+                style={{ 
+                  transform: `translateX(calc(-50% - ${shift}px))`,
+                  left: '50%'
+                }}
               />
             </div>
           </motion.div>
@@ -593,7 +627,7 @@ export default function MushafSpreadViewer({
                 </div>
 
                 {/* Arabic Page Number at Bottom */}
-                <div className="mt-auto py-1 flex items-center justify-center text-xl font-medium text-primary opacity-70" style={{ fontFamily: "" }}>
+                <div className="mt-auto py-1 flex items-center justify-center text-xl font-medium text-primary opacity-70">
                   {toArabicDigits(page.pageNumber)}
                 </div>
               </article>

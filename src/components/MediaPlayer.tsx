@@ -261,16 +261,21 @@ export default function MediaPlayer() {
                           <div className="flex-1">
                             <span className="text-[10px] text-gray-400 block mb-1">From Ayah</span>
                             <select 
-                              value={repeatRange.start?.ayah || currentAyah.ayah}
+                              value={repeatRange.start?.ayah || ""}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                // 1. Update the range start
-                                setRepeatRange({ 
+                                // 1. Prepare new range
+                                const newRange = { 
                                   ...repeatRange, 
                                   start: { surah: currentAyah.surah, ayah: val } 
-                                });
-                                // 2. Update the player's current ayah to match
-                                playAyah(currentAyah.surah, val, isPlaying);
+                                };
+
+                                // 2. Guard rail: if end is now before start, bump it to match start
+                                if (newRange.end && newRange.end.ayah < val) {
+                                  newRange.end = { surah: currentAyah.surah, ayah: val };
+                                }
+
+                                setRepeatRange(newRange);
                               }}
                               className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary/20 outline-none"
                             >
@@ -294,7 +299,12 @@ export default function MediaPlayer() {
                               className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary/20 outline-none"
                             >
                               <option value="">End...</option>
-                              {Array.from({ length: chaptersData.chapters.find(c => c.id === currentAyah.surah)?.verses_count || 0 }, (_, i) => i + 1).map(n => (
+                              {Array.from(
+                                { length: chaptersData.chapters.find(c => c.id === currentAyah.surah)?.verses_count || 0 }, 
+                                (_, i) => i + 1
+                              )
+                              .filter(n => n >= (repeatRange.start?.ayah || currentAyah.ayah))
+                              .map(n => (
                                 <option key={n} value={n}>{n}</option>
                               ))}
                             </select>
@@ -304,20 +314,18 @@ export default function MediaPlayer() {
                     </motion.div>
                   )}
                   
-                  {repeatMode !== 'none' && (
-                    <div className="bg-primary/5 rounded-lg p-2 text-center flex flex-col gap-1">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] text-primary/60 uppercase font-bold tracking-wider">Verse Repeat</span>
-                        <span className="text-xs text-primary font-bold">{currentRepeatIndex + 1} / {repeatCount === 0 ? '∞' : repeatCount + 1}</span>
-                      </div>
-                      {repeatMode === 'range' && (
-                         <div className="flex justify-between items-center px-1 border-t border-primary/10 pt-1">
-                           <span className="text-[10px] text-primary/60 uppercase font-bold tracking-wider">Range Cycle</span>
-                           <span className="text-xs text-primary font-bold">{rangeCycleIndex + 1}</span>
-                         </div>
-                      )}
-                    </div>
-                  )}
+                  <button
+                    onClick={() => {
+                      if (repeatMode === 'range' && repeatRange.start) {
+                        playAyah(repeatRange.start.surah, repeatRange.start.ayah, true);
+                      }
+                      setIsRepeatMenuOpen(false);
+                    }}
+                    className="w-full py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-emerald-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-1"
+                  >
+                    <Check size={14} />
+                    Confirm Settings
+                  </button>
                 </div>
               </motion.div>
             )}
