@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signIn, signOut } from "next-auth/react";
 import { Chapter, Juz } from "@/types/quran";
 import SideNavMenu from "./SideNavMenu";
 
@@ -12,6 +13,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ chapters, juzs }: NavbarProps) {
+  const { data: session } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const isMushafPage = pathname?.startsWith("/page/");
@@ -55,10 +57,10 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
             </Link>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <Link
               href="/settings"
-              className="p-2 -mr-2 hover:bg-emerald-500/5 rounded-full transition-colors text-gray-600 hover:text-emerald-600"
+              className="hidden md:block p-2 hover:bg-emerald-500/5 rounded-full transition-colors text-gray-600 hover:text-emerald-600"
               aria-label="Settings"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -66,6 +68,29 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
             </Link>
+
+            {session ? (
+              <div className="hidden md:flex items-center gap-3 pl-2 border-l border-gray-100">
+                <img 
+                  src={session.user?.image || ''} 
+                  alt={session.user?.name || 'User'} 
+                  className="w-8 h-8 rounded-full border-2 border-primary/20"
+                />
+                <button 
+                  onClick={() => signOut()}
+                  className="hidden sm:block text-xs font-bold text-muted hover:text-red-500 transition-colors uppercase tracking-wider"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => signIn('google')}
+                className="bg-primary text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </header>

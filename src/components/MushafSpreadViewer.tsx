@@ -10,6 +10,9 @@ import type { MushafLine } from "@/types/mushaf";
 import { getJuzForPage } from "@/utils/juz";
 import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
 import MushafSkeleton from "@/components/MushafSkeleton";
+import { useSession } from "next-auth/react";
+import { updateUserPreferences } from "@/actions/user";
+import chaptersData from "../../public/data/chapters/chapters.json";
 
 function buildPageFontCss(pageNumbers: number[]): string {
   const uniquePages = [...new Set(pageNumbers)].sort((a, b) => a - b);
@@ -46,7 +49,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   pageNumber: number;
   lines: MushafLine[];
 }) {
-  const { playAyah, playUrl, activeId, wordTranslations } = useAudioContext();
+  const { playAyah, playUrl, activeId, wordTranslations, language } = useAudioContext();
   const [isFontLoaded, setIsFontLoaded] = useState(false);
 
   useEffect(() => {
@@ -166,7 +169,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
               const translation = wordTranslations[word.l];
 
               return (
-                <WordTooltip key={`${line.line}-${idx}`} translation={translation} lineIdx={lineIdx}>
+                <WordTooltip key={`${line.line}-${idx}`} translation={translation} lineIdx={lineIdx} language={language}>
                   <div
                     role="button"
                     tabIndex={0}
@@ -207,11 +210,13 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
 function WordTooltip({
   children,
   translation,
-  lineIdx
+  lineIdx,
+  language
 }: {
   children: React.ReactNode;
   translation?: string;
   lineIdx: number;
+  language: 'en' | 'ur';
 }) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState<"top" | "bottom">("top");
@@ -254,7 +259,8 @@ function WordTooltip({
               transformOrigin: isTop ? "bottom center" : "top center"
             }}
           >
-            <div className="bg-[#54948F] text-white text-sm px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg">
+            <div className={`bg-[#54948F] text-white px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg
+              ${language === 'ur' ? 'font-arabic text-lg pb-2' : 'text-sm'}`}>
               {translation}
               {/* Arrow */}
               <div
@@ -293,12 +299,13 @@ export default function MushafSpreadViewer({
   const [isPending, startTransition] = useTransition();
   const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
-  const { playAyah, playUrl, activeId, wordTranslations, fetchWordTranslations } = useAudioContext();
+  const { data: session, status } = useSession();
+  const { playAyah, playUrl, activeId, wordTranslations, fetchWordTranslations, language, setLastRead } = useAudioContext();
 
   useEffect(() => {
     if (rightPage) fetchWordTranslations(rightPage);
     if (leftPage && leftPage !== rightPage) fetchWordTranslations(leftPage);
-  }, [rightPage, leftPage, fetchWordTranslations]);
+  }, [rightPage, leftPage, fetchWordTranslations, language]);
 
   // Font Pre-activation (Zero Delay Optimization)
   useEffect(() => {
@@ -314,6 +321,25 @@ export default function MushafSpreadViewer({
       document.fonts.load(`1em p${p}`).catch(() => {});
     });
   }, [rightPage, leftPage]);
+
+  // Tracking: Save last read position
+  useEffect(() => {
+    if (!requestedPage || !rightLines.length) return;
+    
+    try {
+      const currentSurahId = getSurahForPage(rightLines);
+      const chapter = chaptersData.chapters.find(c => c.id === currentSurahId);
+      
+      if (chapter) {
+        setLastRead({
+          pageNumber: requestedPage,
+          surahName: chapter.name_simple,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to save last read progress:", err);
+    }
+  }, [requestedPage, rightLines, setLastRead]);
 
   const navigateToPage = useCallback((pageTarget: number) => {
     if (isPending) return;

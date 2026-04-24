@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { Chapter, Juz } from "@/types/quran";
 import SearchIcon from "@/components/icons/SearchIcon";
 
@@ -24,10 +25,12 @@ export default function SideNavMenu({
   chapters,
   juzs,
 }: SideNavMenuProps) {
+  const { data: session } = useSession();
   const params = useParams();
   const currentPage = Number(params?.pageNumber) || 1;
   const [activeTab, setActiveTab] = useState<NavTab>("surah");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const filteredChapters = chapters.filter((surah) =>
     surah.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,17 +74,80 @@ export default function SideNavMenu({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-bold text-gray-900 font-sans tracking-tight">Index</h2>
-                  <Link
-                    href="/settings"
-                    onClick={onClose}
-                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 mt-1"
-                    aria-label="Settings"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3"></circle>
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                  </Link>
+                  
+                  {/* Mobile-only settings and profile icons */}
+                  <div className="flex items-center gap-2 md:hidden">
+                    <Link
+                      href="/"
+                      onClick={onClose}
+                      className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 mt-1"
+                      aria-label="Home"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                      </svg>
+                    </Link>
+                    
+                    <Link
+                      href="/settings"
+                      onClick={onClose}
+                      className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 mt-1"
+                      aria-label="Settings"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                      </svg>
+                    </Link>
+
+                    {session?.user && (
+                      <div className="relative">
+                        <button 
+                          onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                          className={`w-7 h-7 rounded-full border transition-all overflow-hidden mt-0.5 ${
+                            isUserMenuOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-emerald-500/20'
+                          }`}
+                        >
+                          <img 
+                            src={session.user.image || ''} 
+                            alt="User" 
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+
+                        <AnimatePresence>
+                          {isUserMenuOpen && (
+                            <>
+                              {/* Overlay to catch clicks outside */}
+                              <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setIsUserMenuOpen(false)}
+                              />
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute right-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 overflow-hidden"
+                              >
+                                <button
+                                  onClick={() => signOut()}
+                                  className="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                  </svg>
+                                  Sign Out
+                                </button>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={onClose}

@@ -53,6 +53,8 @@ export default function MediaPlayer() {
     setRepeatCount,
     repeatRange,
     setRepeatRange,
+    rangeRepeatCount,
+    setRangeRepeatCount,
     currentRepeatIndex,
     rangeCycleIndex
   } = useAudioContext();
@@ -99,7 +101,10 @@ export default function MediaPlayer() {
         whileDrag={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}
         className="fixed bottom-6 left-1/2 z-[100] w-[95vw] max-w-md touch-none"
       >
-        <div ref={containerRef} className="relative bg-white/85 backdrop-blur-2xl border border-primary/15 shadow-[0_12px_40px_rgba(0,0,0,0.15)] rounded-[2.5rem] p-4 flex flex-col gap-3 overflow-visible">
+        <div ref={containerRef} className="relative bg-white/70 backdrop-blur-3xl border border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[2.5rem] p-4 flex flex-col gap-3 overflow-visible">
+          
+          {/* Subtle Inner Glow */}
+          <div className="absolute inset-0 rounded-[2.5rem] border border-white/20 pointer-events-none" />
           
           {/* Drag Handle Indicator */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full opacity-50 mb-1 pointer-events-none" />
@@ -238,13 +243,30 @@ export default function MediaPlayer() {
 
                   {repeatMode !== 'none' && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                      <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-3">Repetitions</span>
+                      <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-3">Ayah Repetitions</span>
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                         {[1, 2, 3, 5, 10, 0].map((c) => (
                           <button
                             key={c}
                             onClick={() => setRepeatCount(c)}
                             className={`py-2 text-xs rounded-lg border transition-all ${repeatCount === c ? 'bg-primary/10 text-primary border-primary/20 font-bold' : 'border-gray-100 hover:bg-gray-50 text-gray-500'}`}
+                          >
+                            {c === 0 ? '∞' : `${c}x`}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {repeatMode === 'range' && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                      <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-3">Range Repetitions</span>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                        {[1, 2, 3, 5, 10, 0].map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => setRangeRepeatCount(c)}
+                            className={`py-2 text-xs rounded-lg border transition-all ${rangeRepeatCount === c ? 'bg-primary/10 text-primary border-primary/20 font-bold' : 'border-gray-100 hover:bg-gray-50 text-gray-500'}`}
                           >
                             {c === 0 ? '∞' : `${c}x`}
                           </button>
@@ -264,13 +286,11 @@ export default function MediaPlayer() {
                               value={repeatRange.start?.ayah || currentAyah.ayah}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                // 1. Update the range start
+                                // Update the range start in context, but don't jump yet
                                 setRepeatRange({ 
                                   ...repeatRange, 
                                   start: { surah: currentAyah.surah, ayah: val } 
                                 });
-                                // 2. Update the player's current ayah to match
-                                playAyah(currentAyah.surah, val, isPlaying);
                               }}
                               className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary/20 outline-none"
                             >
@@ -304,20 +324,18 @@ export default function MediaPlayer() {
                     </motion.div>
                   )}
                   
-                  {repeatMode !== 'none' && (
-                    <div className="bg-primary/5 rounded-lg p-2 text-center flex flex-col gap-1">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] text-primary/60 uppercase font-bold tracking-wider">Verse Repeat</span>
-                        <span className="text-xs text-primary font-bold">{currentRepeatIndex + 1} / {repeatCount === 0 ? '∞' : repeatCount + 1}</span>
-                      </div>
-                      {repeatMode === 'range' && (
-                         <div className="flex justify-between items-center px-1 border-t border-primary/10 pt-1">
-                           <span className="text-[10px] text-primary/60 uppercase font-bold tracking-wider">Range Cycle</span>
-                           <span className="text-xs text-primary font-bold">{rangeCycleIndex + 1}</span>
-                         </div>
-                      )}
-                    </div>
-                  )}
+                  <button
+                    onClick={() => {
+                      // Apply the jump only when confirming
+                      if (repeatMode === 'range' && repeatRange.start) {
+                        playAyah(currentAyah.surah, repeatRange.start.ayah, true);
+                      }
+                      setIsRepeatMenuOpen(false);
+                    }}
+                    className="w-full bg-primary/90 hover:bg-primary text-white py-2.5 rounded-xl text-sm font-bold shadow-[0_8px_20px_rgba(var(--primary-rgb),0.3)] hover:shadow-[0_12px_25px_rgba(var(--primary-rgb),0.4)] hover:scale-[1.01] active:scale-95 transition-all mt-2 border border-white/20 backdrop-blur-sm"
+                  >
+                    Confirm Settings
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -372,8 +390,8 @@ export default function MediaPlayer() {
             )}
           </AnimatePresence>
 
-          {/* Controls Section */}
-          <div className="flex items-center justify-between bg-emerald-50/50 rounded-2xl p-2">
+          {/* Controls Section - Glassy Finish */}
+          <div className="flex items-center justify-between bg-white/40 backdrop-blur-xl border border-white/30 rounded-2xl p-2 shadow-inner">
             
             <div className="flex items-center gap-1">
               {/* Reciter Selector Button */}
