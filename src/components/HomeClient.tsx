@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAudioContext } from "@/context/AudioContext";
 import Link from "next/link";
 import { Chapter, Juz } from "@/types/quran";
 import SearchIcon from "@/components/icons/SearchIcon";
@@ -18,8 +19,10 @@ interface HomeClientProps {
 const JUZ_START_PAGES = [1, 22, 42, 62, 82, 102, 122, 142, 162, 182, 202, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
 
 export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) {
+  const { lastRead } = useAudioContext();
   const [showAll, setShowAll] = useState(false);
   const [activeTab, setActiveTab] = useState<"surah" | "juz">("surah");
+
   const displayedChapters = showAll ? chapters : chapters.slice(0, 9);
 
   return (
@@ -78,41 +81,55 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
           <FilterMenu activeTab={activeTab} onTabChange={setActiveTab} />
         </section>
 
-        {/* Continue Reading Banner */}
-        {alKahf && (
-          <section className="hidden md:block mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
-            <Link href={`/page/${alKahf.pages[0]}`}>
+        {/* Hero Banner - Dynamic for Continue Reading / Start Reading */}
+        <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
+          <Link href={lastRead ? `/page/${lastRead.pageNumber}` : "/page/1"}>
+            <div 
+              className="relative overflow-hidden rounded-2xl p-6 md:p-12 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-500 bg-cover bg-center cursor-pointer group"
+              style={{
+                backgroundImage: "url('/resources/banner.png')",
+              }}
+            >
+              {/* Premium Gradient Overlay */}
               <div 
-                className="relative overflow-hidden rounded-2xl p-8 sm:p-12 shadow-lg hover:shadow-xl transition bg-cover bg-center"
+                className="absolute inset-0 rounded-2xl"
                 style={{
-                  backgroundImage: "url('/resources/banner.png')",
+                  background: "linear-gradient(to right, rgba(var(--primary-rgb), 0.7), transparent)"
                 }}
-              >
-                {/* Green gradient overlay from left to right */}
-                <div 
-                  className="absolute inset-0 rounded-2xl"
-                  style={{
-                    background: "linear-gradient(to right, rgba(var(--primary-rgb), 0.6), transparent)"
-                  }}
-                ></div>
-                {/* Dark overlay for text readability */}
-                <div className="absolute inset-0 bg-black/20 rounded-2xl"></div>
-                
-                <div className="relative space-y-4 max-w-2xl">
-                  <h2 className="text-4xl sm:text-5xl font-serif font-bold text-white leading-tight">
-                    Continue Reading
-                  </h2>
-                  <p className="text-base sm:text-lg text-white/90 leading-relaxed">
-                    Pick up where you left off
-                  </p>
-                  <button className="inline-block px-6 py-2 bg-surface text-primary font-semibold rounded-full hover:bg-primary hover:text-white transition-colors duration-300">
-                    Resume 
-                  </button>
-                </div>
+              ></div>
+              {/* Dark overlay for depth */}
+              <div className="absolute inset-0 bg-black/10 rounded-2xl group-hover:bg-black/5 transition-all"></div>
+              
+              <div className="relative space-y-4 max-w-2xl">
+                {lastRead ? (
+                  <>
+                    <h2 className="text-3xl sm:text-5xl font-serif font-bold text-white leading-tight">
+                      Continue Reading
+                    </h2>
+                    <p className="text-sm sm:text-lg text-white/90 leading-relaxed font-medium">
+                      You were reading <span className="text-secondary-foreground underline decoration-primary/30 underline-offset-4">Surah {lastRead.surahName}</span>
+                    </p>
+                    <button className="flex items-center gap-2 px-6 py-2 sm:px-8 sm:py-3 bg-white text-primary font-bold rounded-full group-hover:bg-primary group-hover:text-white transition-all shadow-xl text-sm sm:text-base">
+                      Continue
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-3xl sm:text-5xl font-serif font-bold text-white leading-tight">
+                      Begin Your Journey
+                    </h2>
+                    <p className="text-sm sm:text-lg text-white/90 leading-relaxed font-medium">
+                      Start your Quran journey right now
+                    </p>
+                    <button className="flex items-center gap-2 px-6 py-2 sm:px-8 sm:py-3 bg-white text-primary font-bold rounded-full group-hover:bg-primary group-hover:text-white transition-all shadow-xl text-sm sm:text-base">
+                      Start Reading
+                    </button>
+                  </>
+                )}
               </div>
-            </Link>
-          </section>
-        )}
+            </div>
+          </Link>
+        </section>
 
         {/* Surah Grid */}
         {activeTab === "surah" && (

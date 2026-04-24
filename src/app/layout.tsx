@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Plus_Jakarta_Sans, Noto_Serif, Noto_Sans_Arabic } fr
 import Navbar from "@/components/Navbar";
 import { AudioProvider } from "@/context/AudioContext";
 import MediaPlayer from "@/components/MediaPlayer";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 import chaptersData from "../../public/data/chapters/chapters.json";
 import juzsData from "../../public/data/juzs.json";
@@ -58,11 +59,15 @@ export const viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+import { auth } from "@/../auth";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html
       lang="en"
@@ -75,11 +80,13 @@ export default function RootLayout({
         <meta name="color-scheme" content="light only" />
       </head>
       <body className="min-h-full flex flex-col bg-white text-black" suppressHydrationWarning>
-        <AudioProvider>
-          <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
-          {children}
-          <MediaPlayer />
-        </AudioProvider>
+        <Providers session={session}>
+          <AudioProvider>
+            <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
+            {children}
+            <MediaPlayer />
+          </AudioProvider>
+        </Providers>
       </body>
     </html>
   );

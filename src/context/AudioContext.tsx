@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { updateUserPreferences } from "@/actions/user";
 import chaptersData from "../../public/data/chapters/chapters.json";
 
 interface AyahId {
@@ -28,7 +30,7 @@ interface AudioContextType {
   isAutoplay: boolean;
   reciterId: number;
   reciters: Reciter[];
-  playAyah: (surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, keepIndices?: boolean) => void;
+  playAyah: (surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, isInternal?: boolean) => void;
   playUrl: (url: string, id: string, surah?: number, ayah?: number) => void;
   togglePlay: () => void;
   toggleAutoplay: () => void;
@@ -51,8 +53,14 @@ interface AudioContextType {
   setRepeatCount: (count: number) => void;
   repeatRange: { start: AyahId | null, end: AyahId | null };
   setRepeatRange: (range: { start: AyahId | null, end: AyahId | null }) => void;
+  rangeRepeatCount: number;
+  setRangeRepeatCount: (count: number) => void;
   currentRepeatIndex: number;
   rangeCycleIndex: number;
+  language: 'en' | 'ur';
+  setLanguage: (lang: 'en' | 'ur') => void;
+  lastRead: { pageNumber: number, surahName: string } | null;
+  setLastRead: (data: { pageNumber: number, surahName: string }) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -90,6 +98,7 @@ export const TRANSLATIONS: Translation[] = [
 ];
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data: session, status } = useSession();
   const [currentAyah, setCurrentAyah] = useState<AyahId | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoplay, setIsAutoplay] = useState(false);
@@ -112,15 +121,64 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeId, setActiveId] = useState<string | null>(null);
   const [wordTranslations, setWordTranslations] = useState<Record<string, string>>({});
   const [translationText, setTranslationText] = useState<string | null>(null);
+  const [language, setLanguageState] = useState<'en' | 'ur'>('en');
+  const [lastRead, setLastReadState] = useState<{ pageNumber: number, surahName: string } | null>(null);
   
-  // Repeat System State
+  // System State
   const [repeatMode, setRepeatMode] = useState<'none' | 'single' | 'range'>('none');
-  const [repeatCount, setRepeatCount] = useState(1); // 1 = play once (no repeat), but user logic says "Repeat X times"
+  const [repeatCount, setRepeatCount] = useState(1);
   const [repeatRange, setRepeatRange] = useState<{ start: AyahId | null, end: AyahId | null }>({ start: null, end: null });
+  const [rangeRepeatCount, setRangeRepeatCount] = useState(1);
   const [currentRepeatIndex, setCurrentRepeatIndex] = useState(0);
   const [rangeCycleIndex, setRangeCycleIndex] = useState(0);
 
   const fetchedPages = useRef<Set<number>>(new Set());
+  const languageRef = useRef(language);
+
+  // Initial Load Logic
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      if (session.user.language) setLanguageState(session.user.language as 'en' | 'ur');
+      if (session.user.preferred_qari) setReciterId(session.user.preferred_qari);
+      if (session.user.preferred_translation) setTranslationId(session.user.preferred_translation);
+      if (session.user.last_opened_page) {
+        setLastReadState({
+          pageNumber: session.user.last_opened_page.pageNumber,
+          surahName: session.user.last_opened_page.surahName
+        });
+      }
+    } else if (status === "unauthenticated") {
+      const savedLang = localStorage.getItem('app_language');
+      const savedReciter = localStorage.getItem('preferred_qari');
+      const savedTranslation = localStorage.getItem('preferred_translation');
+      const savedRead = localStorage.getItem('quran_assistant_last_read');
+      
+      if (savedLang === 'ur' || savedLang === 'en') setLanguageState(savedLang);
+      if (savedReciter) setReciterId(Number(savedReciter));
+      if (savedTranslation) setTranslationId(Number(savedTranslation));
+      if (savedRead) {
+        try {
+          const parsed = JSON.parse(savedRead);
+          setLastReadState({ pageNumber: parsed.pageNumber, surahName: parsed.surahName });
+        } catch (e) {}
+      }
+    }
+  }, [status, session]);
+
+  // Unified Syncing Logic
+  const syncPreferences = useCallback((updates: any) => {
+    if (status === "authenticated") {
+      updateUserPreferences(updates);
+    } else {
+      Object.entries(updates).forEach(([key, value]) => {
+        if (typeof value === 'object') {
+          localStorage.setItem(key, JSON.stringify(value));
+        } else {
+          localStorage.setItem(key, String(value));
+        }
+      });
+    }
+  }, [status]);
 
   const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
   const wordAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -129,6 +187,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const repeatModeRef = useRef(repeatMode);
   const repeatCountRef = useRef(repeatCount);
   const repeatRangeRef = useRef(repeatRange);
+  const rangeRepeatCountRef = useRef(rangeRepeatCount);
   const currentRepeatIndexRef = useRef(currentRepeatIndex);
   const rangeCycleIndexRef = useRef(rangeCycleIndex);
 
@@ -138,9 +197,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     repeatModeRef.current = repeatMode;
     repeatCountRef.current = repeatCount;
     repeatRangeRef.current = repeatRange;
+    rangeRepeatCountRef.current = rangeRepeatCount;
     currentRepeatIndexRef.current = currentRepeatIndex;
     rangeCycleIndexRef.current = rangeCycleIndex;
-  }, [isAutoplay, currentAyah, repeatMode, repeatCount, repeatRange, currentRepeatIndex, rangeCycleIndex]);
+  }, [isAutoplay, currentAyah, repeatMode, repeatCount, repeatRange, rangeRepeatCount, currentRepeatIndex, rangeCycleIndex]);
 
   useEffect(() => {
     // 1. Initialize Ayah Audio (Main Player)
@@ -162,14 +222,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const mode = repeatModeRef.current;
       const count = repeatCountRef.current;
       const range = repeatRangeRef.current;
-      const currentIndex = currentRepeatIndexRef.current;
       const current = currentAyahRef.current;
 
       if (!current) return;
 
-      // 1. REPEAT LOGIC (Takes precedence over Autoplay)
       if (mode === 'single') {
-        if (count === 0 || (currentIndex + 1) < count) {
+        if (count === 0 || (currentRepeatIndexRef.current + 1) < count) {
           setCurrentRepeatIndex(prev => prev + 1);
           playAyahRef.current?.(current.surah, current.ayah, true, undefined, true);
           return;
@@ -177,30 +235,34 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setCurrentRepeatIndex(0);
         }
       } else if (mode === 'range' && range.start && range.end) {
-        if (count === 0 || (currentIndex + 1) < count) {
+        if (count === 0 || (currentRepeatIndexRef.current + 1) < count) {
           setCurrentRepeatIndex(prev => prev + 1);
           playAyahRef.current?.(current.surah, current.ayah, true, undefined, true);
           return;
         } else {
-          // Finished this specific ayah's repeats, move to next
           setCurrentRepeatIndex(0);
           
           const isAtEnd = current.surah === range.end.surah && current.ayah === range.end.ayah;
           if (isAtEnd) {
-            if (count === 0) {
-              // Infinity: loop back to start
+            const rCount = rangeRepeatCountRef.current;
+            const cycleIndex = rangeCycleIndexRef.current;
+            
+            if (rCount === 0 || (cycleIndex + 1) < rCount) {
               setRangeCycleIndex(prev => prev + 1);
               playAyahRef.current?.(range.start.surah, range.start.ayah, true, undefined, true);
               return;
             } else {
-              // Finished range: Pause without clearing state
-              if (ayahAudioRef.current) {
-                ayahAudioRef.current.pause();
-                ayahAudioRef.current.currentTime = 0;
-              }
-              setIsPlaying(false);
-              setCurrentRepeatIndex(0);
               setRangeCycleIndex(0);
+            }
+          } else {
+            const nextAyah = current.ayah + 1;
+            const chapter = chaptersData.chapters.find(c => c.id === current.surah);
+            if (chapter && nextAyah <= chapter.verses_count && nextAyah <= range.end.ayah) {
+              playAyahRef.current?.(current.surah, nextAyah, true, undefined, true);
+              return;
+            } else {
+              setRangeCycleIndex(prev => prev + 1);
+              playAyahRef.current?.(range.start.surah, range.start.ayah, true, undefined, true);
               return;
             }
           } else {
@@ -230,15 +292,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
-      // 2. AUTOPLAY LOGIC
       if (isAutoplayRef.current) {
         const chapter = chaptersData.chapters.find(c => c.id === current.surah);
         if (chapter) {
           let nextSurah = current.surah;
           let nextAyah = current.ayah + 1;
           if (nextAyah > chapter.verses_count) {
-            nextSurah += 1;
-            nextAyah = 1;
+             nextSurah += 1;
+             nextAyah = 1;
           }
           if (nextSurah <= 114) {
             playAyahRef.current?.(nextSurah, nextAyah, true);
@@ -277,33 +338,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       wordAudio.pause();
       wordAudio.src = "";
     };
-  }, []); // Run only once
+  }, []);
 
   const playPromiseRef = useRef<Promise<void> | null>(null);
-  const playAyahRef = useRef<(surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, keepIndices?: boolean) => void>(null);
+  const playAyahRef = useRef<(surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, isInternal?: boolean) => void>(null);
 
-  const playAyah = useCallback(async (
-    surah: number, 
-    ayah: number, 
-    shouldPlay = false, 
-    overrideReciterId?: number,
-    keepIndices = false
-  ) => {
-    if (!ayahAudioRef.current) return;
-
-    // Stop word audio if playing
-    if (wordAudioRef.current) {
-      wordAudioRef.current.pause();
-      wordAudioRef.current.currentTime = 0;
-    }
+  const playAyah = useCallback(async (surah: number, ayah: number, shouldPlay = false, overrideReciterId?: number, isInternal = false) => {
+    if (!audioRef.current) return;
 
     const targetReciterId = overrideReciterId || reciterId;
     const ayahKey = `${surah}:${ayah}`;
     setCurrentAyah({ surah, ayah });
     setActiveId(ayahKey);
     
-    // Reset repeat indices when a new ayah is played manually (keepIndices = false)
-    if (!keepIndices) {
+    if (!isInternal) {
       setCurrentRepeatIndex(0);
       setRangeCycleIndex(0);
     }
@@ -321,12 +369,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ? `https:${relativeUrl}`
           : `https://audio.qurancdn.com/${relativeUrl}`;
 
-      console.log(`Loading Ayah ${ayahKey} for Reciter ${targetReciterId}:`, url);
-
-      // Force update src if reciter changed or src is different
-      if (ayahAudioRef.current.src !== url) {
-        ayahAudioRef.current.src = url;
-        ayahAudioRef.current.load(); // Ensure new source is loaded
+      if (audioRef.current.src !== url) {
+        audioRef.current.src = url;
+        audioRef.current.load();
       }
 
       ayahAudioRef.current.currentTime = 0;
@@ -356,9 +401,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playUrl = useCallback((url: string, id: string, surah?: number, ayah?: number) => {
     if (!wordAudioRef.current) return;
     
-    // Pause ayah audio if playing
-    if (ayahAudioRef.current && !ayahAudioRef.current.paused) {
-      ayahAudioRef.current.pause();
+    if (surah && ayah) {
+      setCurrentAyah({ surah, ayah });
     }
 
     if (wordAudioRef.current.src !== url) {
@@ -378,56 +422,40 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const playNextAyah = useCallback(() => {
     if (!currentAyah) return;
-
     const chapter = chaptersData.chapters.find(c => c.id === currentAyah.surah);
     if (!chapter) return;
-
     let nextSurah = currentAyah.surah;
     let nextAyah = currentAyah.ayah + 1;
-
     if (nextAyah > chapter.verses_count) {
       nextSurah += 1;
       nextAyah = 1;
     }
-
     if (nextSurah > 114) {
       setCurrentAyah(null);
       setActiveId(null);
       return;
     }
-
     playAyah(nextSurah, nextAyah, true);
   }, [currentAyah, playAyah]);
 
   const playPreviousAyah = useCallback(() => {
     if (!currentAyah) return;
-
     let prevSurah = currentAyah.surah;
     let prevAyah = currentAyah.ayah - 1;
-
     if (prevAyah < 1) {
       if (prevSurah <= 1) {
-        // At the beginning of the Quran
-        ayahAudioRef.current && (ayahAudioRef.current.currentTime = 0);
-        return;
+         audioRef.current && (audioRef.current.currentTime = 0);
+         return;
       }
       prevSurah -= 1;
       const prevChapter = chaptersData.chapters.find(c => c.id === prevSurah);
       prevAyah = prevChapter ? prevChapter.verses_count : 1;
     }
-
     playAyah(prevSurah, prevAyah, true);
   }, [currentAyah, playAyah]);
 
   const togglePlay = useCallback(async () => {
-    if (!ayahAudioRef.current || !currentAyah) return;
-
-    // Stop word audio if playing
-    if (wordAudioRef.current) {
-      wordAudioRef.current.pause();
-      wordAudioRef.current.currentTime = 0;
-    }
-
+    if (!audioRef.current || !currentAyah) return;
     if (isPlaying) {
       if (playPromiseRef.current) {
         await playPromiseRef.current.catch(() => { });
@@ -457,9 +485,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveId(null);
     setIsPlaying(false);
     
-    // Reset repeat settings when player is closed
     setRepeatMode('none');
     setRepeatCount(1);
+    setRangeRepeatCount(1);
     setRepeatRange({ start: null, end: null });
     setCurrentRepeatIndex(0);
     setRangeCycleIndex(0);
@@ -478,18 +506,36 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (mode !== 'none') setIsAutoplay(false);
     setCurrentRepeatIndex(0);
     setRangeCycleIndex(0);
+    if (mode === 'none') {
+      setRepeatCount(1);
+      setRangeRepeatCount(1);
+    }
   }, []);
+
+  const setLanguage = useCallback((lang: 'en' | 'ur') => {
+    setLanguageState(lang);
+    syncPreferences({ language: lang });
+    
+    const defaultTranslationId = lang === 'ur' ? 158 : 20;
+    setTranslationId(defaultTranslationId);
+    syncPreferences({ preferred_translation: defaultTranslationId });
+    
+    setWordTranslations({});
+    fetchedPages.current.clear();
+  }, [syncPreferences]);
 
   const setReciter = useCallback((id: number) => {
     setReciterId(id);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("defaultReciterId", id.toString());
-    }
-    // If playing, restart current ayah with new reciter immediately
+    syncPreferences({ preferred_qari: id });
     if (currentAyah) {
       playAyah(currentAyah.surah, currentAyah.ayah, true, id);
     }
-  }, [currentAyah, playAyah]);
+  }, [currentAyah, playAyah, syncPreferences]);
+
+  const handleSetTranslationId = useCallback((id: number) => {
+    setTranslationId(id);
+    syncPreferences({ preferred_translation: id });
+  }, [syncPreferences]);
 
   const handleSetTranslationId = useCallback((id: number) => {
     setTranslationId(id);
@@ -500,13 +546,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const fetchWordTranslations = useCallback(async (pageNumber: number) => {
     if (fetchedPages.current.has(pageNumber)) return;
-
     try {
-      const res = await fetch(
-        `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=translation&translation_language=en`
-      );
+      const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=translation&language=${language}`);
       const data = await res.json();
-
       if (data.verses) {
         const newTranslations: Record<string, string> = {};
         data.verses.forEach((verse: any) => {
@@ -517,21 +559,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           });
         });
-
         setWordTranslations((prev) => ({ ...prev, ...newTranslations }));
         fetchedPages.current.add(pageNumber);
       }
     } catch (err) {
       console.error(`Failed to fetch word translations for page ${pageNumber}:`, err);
     }
-  }, []);
+  }, [language]);
 
   const fetchAyahTranslation = useCallback(async (surah: number, ayah: number, tId: number) => {
     try {
       const res = await fetch(`https://api.quran.com/api/v4/quran/translations/${tId}?verse_key=${surah}:${ayah}`);
       const data = await res.json();
       if (data.translations && data.translations.length > 0) {
-        // Remove HTML tags from translation if they exist
         const text = data.translations[0].text.replace(/<[^>]*>?/gm, '');
         setTranslationText(text);
       }
@@ -548,6 +588,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setTranslationText(null);
     }
   }, [currentAyah, translationId, fetchAyahTranslation]);
+
+  const handleSetLastRead = useCallback((data: { pageNumber: number, surahName: string }) => {
+    setLastReadState(data);
+    const lastReadData = {
+      ...data,
+      timestamp: Date.now()
+    };
+    syncPreferences({ last_opened_page: lastReadData });
+  }, [syncPreferences]);
 
   return (
     <AudioContext.Provider
@@ -578,8 +627,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setRepeatCount,
         repeatRange,
         setRepeatRange,
+        rangeRepeatCount,
+        setRangeRepeatCount,
         currentRepeatIndex,
         rangeCycleIndex,
+        language,
+        setLanguage,
+        lastRead,
+        setLastRead: handleSetLastRead,
       }}
     >
       {children}
