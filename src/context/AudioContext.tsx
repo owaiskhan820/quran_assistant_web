@@ -261,17 +261,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               playAyahRef.current?.(current.surah, nextAyah, true, undefined, true);
               return;
             } else {
-              setRangeCycleIndex(prev => prev + 1);
-              playAyahRef.current?.(range.start.surah, range.start.ayah, true, undefined, true);
-              return;
-            }
-          } else {
-            const nextAyah = current.ayah + 1;
-            const chapter = chaptersData.chapters.find(c => c.id === current.surah);
-            if (chapter && nextAyah <= chapter.verses_count && nextAyah <= range.end.ayah) {
-              playAyahRef.current?.(current.surah, nextAyah, true, undefined, true);
-              return;
-            } else {
               // Out of range fallback: Pause if not infinity
               if (count === 0) {
                 setRangeCycleIndex(prev => prev + 1);
@@ -344,7 +333,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playAyahRef = useRef<(surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, isInternal?: boolean) => void>(null);
 
   const playAyah = useCallback(async (surah: number, ayah: number, shouldPlay = false, overrideReciterId?: number, isInternal = false) => {
-    if (!audioRef.current) return;
+    if (!ayahAudioRef.current) return;
 
     const targetReciterId = overrideReciterId || reciterId;
     const ayahKey = `${surah}:${ayah}`;
@@ -369,9 +358,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ? `https:${relativeUrl}`
           : `https://audio.qurancdn.com/${relativeUrl}`;
 
-      if (audioRef.current.src !== url) {
-        audioRef.current.src = url;
-        audioRef.current.load();
+      if (ayahAudioRef.current.src !== url) {
+        ayahAudioRef.current.src = url;
+        ayahAudioRef.current.load();
       }
 
       ayahAudioRef.current.currentTime = 0;
@@ -444,7 +433,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let prevAyah = currentAyah.ayah - 1;
     if (prevAyah < 1) {
       if (prevSurah <= 1) {
-         audioRef.current && (audioRef.current.currentTime = 0);
+         ayahAudioRef.current && (ayahAudioRef.current.currentTime = 0);
          return;
       }
       prevSurah -= 1;
@@ -455,7 +444,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [currentAyah, playAyah]);
 
   const togglePlay = useCallback(async () => {
-    if (!audioRef.current || !currentAyah) return;
+    if (!ayahAudioRef.current || !currentAyah) return;
     if (isPlaying) {
       if (playPromiseRef.current) {
         await playPromiseRef.current.catch(() => { });
@@ -537,12 +526,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     syncPreferences({ preferred_translation: id });
   }, [syncPreferences]);
 
-  const handleSetTranslationId = useCallback((id: number) => {
-    setTranslationId(id);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("defaultTranslationId", id.toString());
-    }
-  }, []);
 
   const fetchWordTranslations = useCallback(async (pageNumber: number) => {
     if (fetchedPages.current.has(pageNumber)) return;
