@@ -13,6 +13,8 @@ import MushafSkeleton from "@/components/MushafSkeleton";
 import { useSession } from "next-auth/react";
 import { updateUserPreferences } from "@/actions/user";
 import chaptersData from "../../public/data/chapters/chapters.json";
+import AyahActionPopup from "./quran/AyahActionPopup";
+import AyahTafseerDrawer from "./quran/AyahTafseerDrawer";
 
 function buildPageFontCss(pageNumbers: number[]): string {
   const uniquePages = [...new Set(pageNumbers)].sort((a, b) => a - b);
@@ -45,12 +47,36 @@ function getWordAudioUrl(location: string): string | null {
 const FifteenLineGrid = memo(function FifteenLineGrid({
   pageNumber,
   lines,
+  onOpenTafseer,
 }: {
   pageNumber: number;
   lines: MushafLine[];
+  onOpenTafseer: (surah: number, ayah: number, arabicWords: string[], pageNumber: number) => void;
 }) {
   const { playAyah, playUrl, activeId, wordTranslations, language } = useAudioContext();
   const [isFontLoaded, setIsFontLoaded] = useState(false);
+  const [actionMenuWord, setActionMenuWord] = useState<any | null>(null);
+  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
+  const [menuShift, setMenuShift] = useState(0);
+
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (actionMenuWord && menuContainerRef.current) {
+      const rect = menuContainerRef.current.getBoundingClientRect();
+      const padding = 20;
+      let newShift = 0;
+      const menuWidth = 200; // Expected min-width of popup
+
+      if (rect.left - menuWidth/2 < padding) {
+        newShift = padding - (rect.left - menuWidth/2);
+      } else if (rect.right + menuWidth/2 > window.innerWidth - padding) {
+        newShift = window.innerWidth - padding - (rect.right + menuWidth/2);
+      }
+      setMenuShift(newShift);
+    }
+  }, [actionMenuWord]);
 
   useEffect(() => {
     setIsFontLoaded(false);
@@ -157,44 +183,90 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
               const isAyahActive = activeId === `${word.s}:${word.a}`;
               const isActive = isWordActive || (word.isStopSign && isAyahActive);
 
-              const handlePlay = () => {
+              const handlePlay = (e?: React.MouseEvent) => {
                 if (word.isStopSign) {
-                  playAyah(parseInt(word.s), parseInt(word.a));
+                  // Ayah end sign clicked: show action menu
+                  const lineIdxForMenu = lineIdx;
+                  setMenuPosition(lineIdxForMenu === 0 ? "bottom" : "top");
+                  setActionMenuWord(word);
                 } else if (!word.isStopSign) {
                   const url = getWordAudioUrl(word.l);
                   if (url) playUrl(url, word.l, parseInt(word.s), parseInt(word.a));
                 }
               };
 
+               // Helper to find full Ayah Arabic text for Tafseer
+              const getAyahArabicWords = (surah: string, ayah: string) => {
+                const ayahWords: string[] = [];
+                // Search in all lines of current page first
+                lines.forEach(l => {
+                  l.words.forEach(w => {
+                    if (w.s === surah && w.a === ayah && !w.isStopSign) {
+                      ayahWords.push(w.c);
+                    }
+                  });
+                });
+                return ayahWords;
+              };
+
               const translation = wordTranslations[word.l];
 
               return (
                 <WordTooltip key={`${line.line}-${idx}`} translation={translation} lineIdx={lineIdx} language={language}>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={handlePlay}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        handlePlay();
-                      }
-                    }}
-                    className={`
-                      leading-none font-normal cursor-pointer transition-all duration-300
-                      text-[clamp(1.15rem,5.2vw,1.65rem)]  /* Mobile-Default (Slightly Reduced) */
-                      lg:text-[1.75rem]                /* Desktop-Canonical */
-                      text-[#1a1a1a]
-                      ${isActive
-                        ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20"
-                        : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
-                    `}
-                    style={{
-                      color: isActive
-                        ? "var(--primary)"
-                        : (word.isStopSign ? "var(--primary)" : "#1a1a1a"),
-                    }}
-                  >
-                    {word.c}
+                  <div className="relative">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={handlePlay}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          handlePlay();
+                        }
+                      }}
+                      className={`
+                        leading-none font-normal cursor-pointer transition-all duration-300
+                        text-[clamp(1.15rem,5.2vw,1.65rem)]  /* Mobile-Default (Slightly Reduced) */
+                        lg:text-[1.75rem]                /* Desktop-Canonical */
+                        text-[#1a1a1a]
+                        ${isActive
+                          ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20"
+                          : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
+                      `}
+                      style={{
+                        color: isActive
+                          ? "var(--primary)"
+                          : (word.isStopSign ? "var(--primary)" : "#1a1a1a"),
+                      }}
+                    >
+                      {word.c}
+                    </div>
+
+                    {word.isStopSign && (
+                      <div 
+                        ref={actionMenuWord?.l === word.l ? menuContainerRef : null} 
+                        className={`absolute inset-x-0 bottom-0 z-[10000] ${actionMenuWord?.l === word.l ? 'pointer-events-auto' : 'pointer-events-none'}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <AyahActionPopup
+                          isOpen={actionMenuWord?.l === word.l}
+                          onClose={() => setActionMenuWord(null)}
+                          onListen={() => {
+                            playAyah(parseInt(word.s), parseInt(word.a));
+                          }}
+                          onTafseer={() => {
+                            onOpenTafseer(
+                              parseInt(word.s), 
+                              parseInt(word.a), 
+                              getAyahArabicWords(word.s, word.a), 
+                              pageNumber
+                            );
+                          }}
+                          language={language}
+                          position={menuPosition}
+                          shift={menuShift}
+                        />
+                      </div>
+                    )}
                   </div>
                 </WordTooltip>
               );
@@ -332,6 +404,25 @@ export default function MushafSpreadViewer({
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
   const { data: session, status } = useSession();
   const { playAyah, playUrl, activeId, wordTranslations, fetchWordTranslations, language, setLastRead } = useAudioContext();
+  const [tafseerData, setTafseerData] = useState<{ 
+    surah: number; 
+    ayah: number; 
+    arabicWords: string[]; 
+    surahName: string;
+    pageNumber: number;
+  } | null>(null);
+
+  const handleOpenTafseer = useCallback((surah: number, ayah: number, arabicWords: string[], pageNumber: number) => {
+    // chapter.id can be number or string, be safe
+    const chapter = chaptersData.chapters.find(c => Number(c.id) === Number(surah));
+    setTafseerData({
+      surah,
+      ayah,
+      arabicWords,
+      pageNumber,
+      surahName: chapter?.name_simple || `Surah ${surah}`,
+    });
+  }, []);
 
   useEffect(() => {
     if (rightPage) fetchWordTranslations(rightPage);
@@ -646,6 +737,7 @@ export default function MushafSpreadViewer({
                   <FifteenLineGrid
                     pageNumber={page.pageNumber}
                     lines={page.lines}
+                    onOpenTafseer={handleOpenTafseer}
                   />
                 </div>
 
@@ -706,6 +798,17 @@ export default function MushafSpreadViewer({
       </div>
 
       {/* Mobile Navigation replaced by swiping logic directly on main tag */}
+      {/* Tafseer Drawer */}
+      <AyahTafseerDrawer
+        isOpen={!!tafseerData}
+        onClose={() => setTafseerData(null)}
+        surahId={tafseerData?.surah || 0}
+        surahName={tafseerData?.surahName || ""}
+        ayahNumber={tafseerData?.ayah || 0}
+        arabicWords={tafseerData?.arabicWords}
+        pageNumber={tafseerData?.pageNumber}
+        language={language}
+      />
     </main>
   );
 }
