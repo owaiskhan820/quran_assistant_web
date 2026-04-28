@@ -186,25 +186,6 @@ export default function AyahTafseerDrawer({
 
             {/* Viewport */}
             <div className="flex-1 overflow-y-auto px-6 py-8 space-y-10 book-scrollbar bg-white">
-              {/* Picture Perfect Ayah (Using Glyphs) */}
-              {arabicWords && arabicWords.length > 0 && (
-                <div className="flex flex-row-reverse flex-wrap justify-center items-center gap-1.5 px-4 mb-8">
-                  {arabicWords.map((word, i) => (
-                    <span
-                      key={i}
-                      className="text-[2.2rem] leading-none text-primary-dark"
-                      style={{
-                        fontFamily: pageNumber ? `p${pageNumber}` : 'QuranCommon',
-                        fontFeatureSettings: '"kern" 0'
-                      }}
-                    >
-                      {word}
-                    </span>
-                  ))}
-                  <div className="w-full h-1 bg-primary/5 mx-auto mt-8 rounded-full" />
-                </div>
-              )}
-
               {/* Dynamic Content Core */}
               <div
                 className={`min-h-[200px] tafsir-content pb-10

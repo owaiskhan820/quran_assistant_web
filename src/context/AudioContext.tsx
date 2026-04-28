@@ -61,6 +61,8 @@ interface AudioContextType {
   setLanguage: (lang: 'en' | 'ur') => void;
   lastRead: { pageNumber: number, surahName: string } | null;
   setLastRead: (data: { pageNumber: number, surahName: string }) => void;
+  isTafseerVisible: boolean;
+  setIsTafseerVisible: (visible: boolean) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -131,6 +133,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [rangeRepeatCount, setRangeRepeatCount] = useState(1);
   const [currentRepeatIndex, setCurrentRepeatIndex] = useState(0);
   const [rangeCycleIndex, setRangeCycleIndex] = useState(0);
+  const [isTafseerVisible, setIsTafseerVisible] = useState(false);
 
   const fetchedPages = useRef<Set<number>>(new Set());
   const languageRef = useRef(language);
@@ -339,6 +342,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const ayahKey = `${surah}:${ayah}`;
     setCurrentAyah({ surah, ayah });
     setActiveId(ayahKey);
+    setIsTafseerVisible(false);
     
     if (!isInternal) {
       setCurrentRepeatIndex(0);
@@ -390,9 +394,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playUrl = useCallback((url: string, id: string, surah?: number, ayah?: number) => {
     if (!wordAudioRef.current) return;
     
-    if (surah && ayah) {
-      setCurrentAyah({ surah, ayah });
-    }
+    // Decoupled from currentAyah to prevent triggering the main MediaPlayer
+    // if (surah && ayah) {
+    //   setCurrentAyah({ surah, ayah });
+    // }
 
     if (wordAudioRef.current.src !== url) {
       wordAudioRef.current.src = url;
@@ -618,6 +623,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setLanguage,
         lastRead,
         setLastRead: handleSetLastRead,
+        isTafseerVisible,
+        setIsTafseerVisible,
       }}
     >
       {children}

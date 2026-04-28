@@ -59,6 +59,17 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
 
           <div className="flex items-center gap-4 sm:gap-6">
             <Link
+              href="/breakdown"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-xs font-black uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200/50"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+              <span>Breakdown</span>
+            </Link>
+
+            <Link
               href="/settings"
               className="hidden md:block p-2 hover:bg-emerald-500/5 rounded-full transition-colors text-gray-600 hover:text-emerald-600"
               aria-label="Settings"

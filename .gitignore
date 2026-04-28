@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Mobile App
 mobile_app/
+
+# Morphology/Tafseel module temporarily ignored
+src/app/breakdown/
+src/models/Morphology.ts
+data/morphology.json

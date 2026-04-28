@@ -56,7 +56,8 @@ export default function MediaPlayer() {
     rangeRepeatCount,
     setRangeRepeatCount,
     currentRepeatIndex,
-    rangeCycleIndex
+    rangeCycleIndex,
+    isTafseerVisible
   } = useAudioContext();
 
   // Close menus when clicking outside
@@ -84,7 +85,7 @@ export default function MediaPlayer() {
     setIsRepeatMenuOpen(false);
   }, [currentAyah?.surah, currentAyah?.ayah]);
 
-  if (!currentAyah) return null;
+  if (!currentAyah || isTafseerVisible) return null;
 
   const surahName = getSurahNameArabic(currentAyah.surah);
 

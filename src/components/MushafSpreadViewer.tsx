@@ -48,31 +48,42 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   pageNumber,
   lines,
   onOpenTafseer,
+  actionMenuWord,
+  setActionMenuWord,
+  menuPosition,
+  setMenuPosition,
+  menuShift,
+  setMenuShift,
 }: {
   pageNumber: number;
   lines: MushafLine[];
   onOpenTafseer: (surah: number, ayah: number, arabicWords: string[], pageNumber: number) => void;
+  actionMenuWord: any;
+  setActionMenuWord: (word: any) => void;
+  menuPosition: "top" | "bottom";
+  setMenuPosition: (pos: "top" | "bottom") => void;
+  menuShift: number;
+  setMenuShift: (shift: number) => void;
 }) {
   const { playAyah, playUrl, activeId, wordTranslations, language } = useAudioContext();
   const [isFontLoaded, setIsFontLoaded] = useState(false);
-  const [actionMenuWord, setActionMenuWord] = useState<any | null>(null);
-  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
-  const [menuShift, setMenuShift] = useState(0);
 
   const menuContainerRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
-    if (actionMenuWord && menuContainerRef.current) {
+    if (actionMenuWord && menuContainerRef.current && gridRef.current) {
       const rect = menuContainerRef.current.getBoundingClientRect();
-      const padding = 20;
+      const gridRect = gridRef.current.getBoundingClientRect();
+      const padding = 32;
       let newShift = 0;
       const menuWidth = 200; // Expected min-width of popup
 
-      if (rect.left - menuWidth/2 < padding) {
-        newShift = padding - (rect.left - menuWidth/2);
-      } else if (rect.right + menuWidth/2 > window.innerWidth - padding) {
-        newShift = window.innerWidth - padding - (rect.right + menuWidth/2);
+      if (rect.left - menuWidth/2 < gridRect.left + padding) {
+        newShift = (gridRect.left + padding) - (rect.left - menuWidth/2);
+      } else if (rect.right + menuWidth/2 > gridRect.right - padding) {
+        newShift = (gridRect.right - padding) - (rect.right + menuWidth/2);
       }
       setMenuShift(newShift);
     }
@@ -116,7 +127,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   const isShortPage = linesToRender.length < 15;
 
   return (
-    <div className="relative w-full h-full">
+    <div ref={gridRef} className="relative w-full h-full grid-container">
       {/* 1. SKELETON UNDERLAY (Visible while loading) */}
       <AnimatePresence>
         {!isFontLoaded && (
@@ -212,7 +223,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
               const translation = wordTranslations[word.l];
 
               return (
-                <WordTooltip key={`${line.line}-${idx}`} translation={translation} lineIdx={lineIdx} language={language}>
+                <WordTooltip key={`${line.line}-${idx}`} translation={word.isStopSign ? undefined : translation} lineIdx={lineIdx} language={language}>
                   <div className="relative">
                     <div
                       role="button"
@@ -312,13 +323,16 @@ function WordTooltip({
     if (typeof window === "undefined") return;
     if (isVisible && tooltipRef.current) {
       const rect = tooltipRef.current.getBoundingClientRect();
-      const padding = 12;
+      const gridContainer = tooltipRef.current.closest('.grid-container');
+      const boundary = gridContainer ? gridContainer.getBoundingClientRect() : { left: 0, right: window.innerWidth };
+      
+      const padding = 24;
       let newShift = 0;
 
-      if (rect.left < padding) {
-        newShift = padding - rect.left;
-      } else if (rect.right > window.innerWidth - padding) {
-        newShift = window.innerWidth - padding - rect.right;
+      if (rect.left < boundary.left + padding) {
+        newShift = (boundary.left + padding) - rect.left;
+      } else if (rect.right > boundary.right - padding) {
+        newShift = boundary.right - padding - rect.right;
       }
 
       setShift(newShift);
@@ -403,7 +417,23 @@ export default function MushafSpreadViewer({
   const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
   const { data: session, status } = useSession();
-  const { playAyah, playUrl, activeId, wordTranslations, fetchWordTranslations, language, setLastRead } = useAudioContext();
+  const { 
+    playAyah, 
+    playUrl, 
+    activeId, 
+    wordTranslations, 
+    fetchWordTranslations, 
+    language, 
+    setLastRead,
+    isTafseerVisible,
+    setIsTafseerVisible,
+    stopAudio
+  } = useAudioContext();
+
+  const [actionMenuWord, setActionMenuWord] = useState<any | null>(null);
+  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
+  const [menuShift, setMenuShift] = useState(0);
+
   const [tafseerData, setTafseerData] = useState<{ 
     surah: number; 
     ayah: number; 
@@ -422,7 +452,9 @@ export default function MushafSpreadViewer({
       pageNumber,
       surahName: chapter?.name_simple || `Surah ${surah}`,
     });
-  }, []);
+    stopAudio();
+    setIsTafseerVisible(true);
+  }, [stopAudio, setIsTafseerVisible]);
 
   useEffect(() => {
     if (rightPage) fetchWordTranslations(rightPage);
@@ -733,11 +765,17 @@ export default function MushafSpreadViewer({
                 {/* Keyline Divider */}
                 <div className="mx-2 lg:mx-8 mb-3 border-t border-divider" />
 
-                <div className="relative z-10 flex-1 w-full pt-2 px-5 lg:px-8 pb-2 overflow-hidden select-none">
+                <div className="relative z-10 flex-1 w-full pt-2 px-5 lg:px-8 pb-2 select-none">
                   <FifteenLineGrid
                     pageNumber={page.pageNumber}
                     lines={page.lines}
                     onOpenTafseer={handleOpenTafseer}
+                    actionMenuWord={actionMenuWord}
+                    setActionMenuWord={setActionMenuWord}
+                    menuPosition={menuPosition}
+                    setMenuPosition={setMenuPosition}
+                    menuShift={menuShift}
+                    setMenuShift={setMenuShift}
                   />
                 </div>
 
@@ -800,8 +838,11 @@ export default function MushafSpreadViewer({
       {/* Mobile Navigation replaced by swiping logic directly on main tag */}
       {/* Tafseer Drawer */}
       <AyahTafseerDrawer
-        isOpen={!!tafseerData}
-        onClose={() => setTafseerData(null)}
+        isOpen={isTafseerVisible}
+        onClose={() => {
+          setTafseerData(null);
+          setIsTafseerVisible(false);
+        }}
         surahId={tafseerData?.surah || 0}
         surahName={tafseerData?.surahName || ""}
         ayahNumber={tafseerData?.ayah || 0}
