@@ -58,6 +58,7 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-4 sm:gap-6">
+            {/*
             <Link
               href="/breakdown"
               className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-xs font-black uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200/50"
@@ -68,6 +69,7 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
               </svg>
               <span>Breakdown</span>
             </Link>
+            */}
 
             <Link
               href="/settings"
