@@ -27,6 +27,14 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
   const isNumericSearch = /^\d+$/.test(searchQuery.trim());
   const searchNumber = isNumericSearch ? parseInt(searchQuery.trim(), 10) : 0;
 
+  const textMatches = !isNumericSearch && searchQuery.trim().length >= 2
+    ? chapters.filter(c => 
+        c.name_simple.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5)
+    : [];
+
+  const showDropdown = isNumericSearch || textMatches.length > 0;
+
   const filteredChapters = searchQuery 
     ? chapters.filter(c => c.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) || c.id.toString().includes(searchQuery))
     : chapters;
@@ -82,65 +90,90 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                 />
               </div>
 
-              {isNumericSearch && (
+              {showDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-3 bg-surface rounded-2xl shadow-xl border border-primary/10 overflow-hidden text-left flex flex-col p-2 gap-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider">
-                    Quick Jump to {searchNumber}
-                  </div>
-                  
-                  {searchNumber >= 1 && searchNumber <= 114 && (() => {
-                    const surah = chapters.find(c => c.id === searchNumber);
-                    if (!surah) return null;
-                    return (
-                      <Link
-                        href={`/page/${surah.pages[0]}`}
-                        className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                          S
+                  {isNumericSearch ? (
+                    <>
+                      <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider">
+                        Quick Jump to {searchNumber}
+                      </div>
+                      
+                      {searchNumber >= 1 && searchNumber <= 114 && (() => {
+                        const surah = chapters.find(c => c.id === searchNumber);
+                        if (!surah) return null;
+                        return (
+                          <Link
+                            href={`/page/${surah.pages[0]}`}
+                            className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                          >
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                              S
+                            </div>
+                            <div>
+                              <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Surah {surah.name_simple}</div>
+                              <div className="text-xs text-muted">Go to Surah {searchNumber}</div>
+                            </div>
+                          </Link>
+                        );
+                      })()}
+
+                      {searchNumber >= 1 && searchNumber <= 30 && (
+                        <Link
+                          href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
+                          className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            J
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Juz {searchNumber}</div>
+                            <div className="text-xs text-muted">Go to Juz {searchNumber}</div>
+                          </div>
+                        </Link>
+                      )}
+
+                      {searchNumber >= 1 && searchNumber <= 604 && (
+                        <Link
+                          href={`/page/${searchNumber}`}
+                          className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            P
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Page {searchNumber}</div>
+                            <div className="text-xs text-muted">Go to Page {searchNumber}</div>
+                          </div>
+                        </Link>
+                      )}
+
+                      {searchNumber > 604 && (
+                        <div className="px-4 py-3 text-sm text-muted text-center">
+                          No results found for number {searchNumber}
                         </div>
-                        <div>
-                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Surah {surah.name_simple}</div>
-                          <div className="text-xs text-muted">Go to Surah {searchNumber}</div>
-                        </div>
-                      </Link>
-                    );
-                  })()}
-
-                  {searchNumber >= 1 && searchNumber <= 30 && (
-                    <Link
-                      href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
-                      className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                        J
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider">
+                        Suggested Surahs
                       </div>
-                      <div>
-                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Juz {searchNumber}</div>
-                        <div className="text-xs text-muted">Go to Juz {searchNumber}</div>
-                      </div>
-                    </Link>
-                  )}
-
-                  {searchNumber >= 1 && searchNumber <= 604 && (
-                    <Link
-                      href={`/page/${searchNumber}`}
-                      className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                        P
-                      </div>
-                      <div>
-                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Page {searchNumber}</div>
-                        <div className="text-xs text-muted">Go to Page {searchNumber}</div>
-                      </div>
-                    </Link>
-                  )}
-
-                  {searchNumber > 604 && (
-                    <div className="px-4 py-3 text-sm text-muted text-center">
-                      No results found for number {searchNumber}
-                    </div>
+                      {textMatches.map(surah => (
+                        <Link
+                          key={surah.id}
+                          href={`/page/${surah.pages[0]}`}
+                          className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            {surah.id}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Surah {surah.name_simple}</div>
+                            <div className="text-xs text-muted">Go to Surah {surah.id}</div>
+                          </div>
+                        </Link>
+                      ))}
+                    </>
                   )}
                 </div>
               )}

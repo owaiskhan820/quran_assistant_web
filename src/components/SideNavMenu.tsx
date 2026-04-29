@@ -35,6 +35,14 @@ export default function SideNavMenu({
   const isNumericSearch = /^\d+$/.test(searchQuery.trim());
   const searchNumber = isNumericSearch ? parseInt(searchQuery.trim(), 10) : 0;
 
+  const textMatches = !isNumericSearch && searchQuery.trim().length >= 2
+    ? chapters.filter(c => 
+        c.name_simple.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5)
+    : [];
+
+  const showJumpList = isNumericSearch || textMatches.length > 0;
+
   const filteredChapters = chapters.filter((surah) =>
     surah.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) ||
     surah.id.toString().includes(searchQuery)
@@ -221,68 +229,91 @@ export default function SideNavMenu({
 
             {/* Scrollable List */}
             <div className="flex-1 overflow-y-auto book-scrollbar py-6 px-3">
-              {isNumericSearch ? (
+              {showJumpList ? (
                 <div className="space-y-2">
                   <h3 className="px-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Jump to {searchNumber}
+                    {isNumericSearch ? `Jump to ${searchNumber}` : 'Suggested Surahs'}
                   </h3>
                   
-                  {searchNumber >= 1 && searchNumber <= 114 && (() => {
-                    const surah = chapters.find(c => c.id === searchNumber);
-                    if (!surah) return null;
-                    return (
-                      <Link
-                        href={`/page/${surah.pages[0]}`}
-                        onClick={onClose}
-                        className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
-                      >
-                        <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
-                          <span className="text-emerald-700 font-bold text-sm">S</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-semibold text-gray-900">Surah {surah.name_simple}</div>
-                          <div className="text-xs text-gray-500">Go to Surah {searchNumber}</div>
-                        </div>
-                      </Link>
-                    )
-                  })()}
+                  {isNumericSearch ? (
+                    <>
+                      {searchNumber >= 1 && searchNumber <= 114 && (() => {
+                        const surah = chapters.find(c => c.id === searchNumber);
+                        if (!surah) return null;
+                        return (
+                          <Link
+                            href={`/page/${surah.pages[0]}`}
+                            onClick={onClose}
+                            className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                          >
+                            <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
+                              <span className="text-emerald-700 font-bold text-sm">S</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-gray-900">Surah {surah.name_simple}</div>
+                              <div className="text-xs text-gray-500">Go to Surah {searchNumber}</div>
+                            </div>
+                          </Link>
+                        )
+                      })()}
 
-                  {searchNumber >= 1 && searchNumber <= 30 && (
-                    <Link
-                      href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
-                      onClick={onClose}
-                      className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
-                    >
-                        <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
-                          <span className="text-emerald-700 font-bold text-sm">J</span>
-                        </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-gray-900">Juz {searchNumber}</div>
-                        <div className="text-xs text-gray-500">Go to Juz {searchNumber}</div>
-                      </div>
-                    </Link>
-                  )}
+                      {searchNumber >= 1 && searchNumber <= 30 && (
+                        <Link
+                          href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
+                          onClick={onClose}
+                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                        >
+                            <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
+                              <span className="text-emerald-700 font-bold text-sm">J</span>
+                            </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-900">Juz {searchNumber}</div>
+                            <div className="text-xs text-gray-500">Go to Juz {searchNumber}</div>
+                          </div>
+                        </Link>
+                      )}
 
-                  {searchNumber >= 1 && searchNumber <= 604 && (
-                    <Link
-                      href={`/page/${searchNumber}`}
-                      onClick={onClose}
-                      className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
-                    >
-                        <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
-                          <span className="text-emerald-700 font-bold text-sm">P</span>
-                        </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-gray-900">Page {searchNumber}</div>
-                        <div className="text-xs text-gray-500">Go to Page {searchNumber}</div>
-                      </div>
-                    </Link>
-                  )}
+                      {searchNumber >= 1 && searchNumber <= 604 && (
+                        <Link
+                          href={`/page/${searchNumber}`}
+                          onClick={onClose}
+                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                        >
+                            <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
+                              <span className="text-emerald-700 font-bold text-sm">P</span>
+                            </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-900">Page {searchNumber}</div>
+                            <div className="text-xs text-gray-500">Go to Page {searchNumber}</div>
+                          </div>
+                        </Link>
+                      )}
 
-                  {searchNumber > 604 && (
-                    <div className="text-center py-8 text-sm text-gray-500">
-                      No results found for {searchNumber}
-                    </div>
+                      {searchNumber > 604 && (
+                        <div className="text-center py-8 text-sm text-gray-500">
+                          No results found for {searchNumber}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {textMatches.map(surah => (
+                        <Link
+                          key={surah.id}
+                          href={`/page/${surah.pages[0]}`}
+                          onClick={onClose}
+                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                        >
+                          <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
+                            <span className="text-emerald-700 font-bold text-sm">{surah.id}</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-900">Surah {surah.name_simple}</div>
+                            <div className="text-xs text-gray-500">Go to Surah {surah.id}</div>
+                          </div>
+                        </Link>
+                      ))}
+                    </>
                   )}
                 </div>
               ) : activeTab === "surah" ? (
