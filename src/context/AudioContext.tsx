@@ -151,7 +151,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
     } else if (status === "unauthenticated") {
-      const savedLang = localStorage.getItem('app_language');
+      const savedLang = localStorage.getItem('language') || localStorage.getItem('app_language');
       const savedReciter = localStorage.getItem('preferred_qari');
       const savedTranslation = localStorage.getItem('preferred_translation');
       const savedRead = localStorage.getItem('quran_assistant_last_read');

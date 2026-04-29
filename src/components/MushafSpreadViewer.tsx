@@ -106,11 +106,11 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
 
   function Basmalah() {
     return (
-      <div className="flex w-full items-center justify-center py-2 text-black">
+      <div className="flex w-full h-full items-center justify-center text-black">
         <span
           className="leading-none
-                    text-[clamp(1.4rem,6vw,1.75rem)]   /* Mobile-Default */
-                    lg:text-[1.75em]"                 /* Desktop-Canonical */
+                    text-[clamp(1.2rem,5vw,1.5rem)]   /* Mobile-Default */
+                    lg:text-[1.5em]"                 /* Desktop-Canonical */
           style={{
             fontFamily: "QuranCommon",
             fontVariantLigatures: "common-ligatures",
@@ -147,9 +147,12 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
         dir="rtl"
         className={`${isShortPage
           ? "flex flex-col justify-center h-full w-full gap-5 py-12"
-          : "grid h-full w-full grid-rows-15"
+          : "grid h-full w-full grid-rows-[15]"
           } transition-opacity duration-300 ${isFontLoaded ? "opacity-100" : "opacity-0"}`}
-        style={{ fontFamily: `p${pageNumber}` }}
+        style={{ 
+          fontFamily: `p${pageNumber}`,
+          gridTemplateRows: isShortPage ? undefined : "repeat(15, minmax(0, 1fr))"
+        }}
       >
       {linesToRender.map((line, lineIdx) => (
         <div
@@ -162,11 +165,11 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
           }}
         >
           {line.type === "surah_name" ? (
-            <div className="relative flex w-full items-center justify-center py-1 text-secondary">
+            <div className="relative flex w-full h-full items-center justify-center text-secondary">
               <span
                 className="block text-center leading-none opacity-90 
-                          text-[clamp(1.8rem,10vw,2.9rem)]  /* Mobile-Default */
-                          lg:text-[clamp(3rem,8vw,3rem)]"    /* Desktop-Canonical */
+                          text-[clamp(1.5rem,8vw,2.5rem)]  /* Mobile-Default */
+                          lg:text-[clamp(2.4rem,7vw,2.7rem)]"    /* Desktop-Canonical */
                 style={{
                   fontFamily: "QuranCommon",
                   fontVariantLigatures: "common-ligatures",
@@ -177,9 +180,9 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
               </span>
               <span
                 className="absolute leading-none 
-                          text-[clamp(1.2rem,8vw,2.4rem)]    /* Mobile-Default */
-                          lg:text-[clamp(2.25rem,8.5vw,2.50rem)]" /* Desktop-Canonical */
-                style={{ fontFamily: "surah-name-v2" }}
+                          text-[clamp(1.1rem,7vw,2.1rem)]    /* Mobile-Default */
+                          lg:text-[clamp(1.8rem,7.5vw,2.1rem)]" /* Desktop-Canonical */
+                style={{ fontFamily: "surah-name-v2", marginTop: "-0.2rem" }}
               >
                 {`surah${String(Number(line.surah) || 0).padStart(3, "0")}`}
               </span>
@@ -636,7 +639,7 @@ export default function MushafSpreadViewer({
 
   return (
     <main
-      className="h-[100dvh] w-screen bg-background text-foreground overflow-hidden flex flex-col items-center justify-center p-0 lg:p-4"
+      className="flex-1 w-full bg-background text-foreground overflow-hidden flex flex-col items-center justify-center p-0 lg:p-4"
       style={{ perspective: "2500px" }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -708,7 +711,7 @@ export default function MushafSpreadViewer({
             }}
             style={{ transformStyle: "preserve-3d" }}
             dir="rtl"
-            className="flex flex-col lg:flex-row gap-0 w-full h-[100dvh] max-h-[100dvh] lg:h-[85dvh] lg:max-h-[85dvh] origin-center relative items-center justify-center"
+            className="flex flex-col lg:flex-row gap-0 w-full h-[100dvh] max-h-[100dvh] lg:h-full lg:max-h-full origin-center relative items-center justify-center"
           >
             {/* The Spine shadow */}
             <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1px] -translate-x-1/2 bg-divider/50 shadow-[0_0_20px_10px_rgba(var(--primary-rgb),0.08)] lg:block z-20" />

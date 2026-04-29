@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import { AudioProvider } from "@/context/AudioContext";
 import MediaPlayer from "@/components/MediaPlayer";
 import { Providers } from "@/components/Providers";
+import LanguageSelectionModal from "@/components/LanguageSelectionModal";
+import OnboardingTutorial from "@/components/OnboardingTutorial";
 import "./globals.css";
 import chaptersData from "../../public/data/chapters/chapters.json";
 import juzsData from "../../public/data/juzs.json";
@@ -83,6 +85,8 @@ export default async function RootLayout({
         <Providers session={session}>
           <AudioProvider>
             <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
+            <LanguageSelectionModal />
+            <OnboardingTutorial />
             {children}
             <MediaPlayer />
           </AudioProvider>

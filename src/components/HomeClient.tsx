@@ -22,8 +22,15 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
   const { lastRead } = useAudioContext();
   const [showAll, setShowAll] = useState(false);
   const [activeTab, setActiveTab] = useState<"surah" | "juz">("surah");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const displayedChapters = showAll ? chapters : chapters.slice(0, 9);
+  const isNumericSearch = /^\d+$/.test(searchQuery.trim());
+  const searchNumber = isNumericSearch ? parseInt(searchQuery.trim(), 10) : 0;
+
+  const filteredChapters = searchQuery 
+    ? chapters.filter(c => c.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) || c.id.toString().includes(searchQuery))
+    : chapters;
+  const displayedChapters = searchQuery ? filteredChapters : (showAll ? chapters : chapters.slice(0, 9));
 
   return (
     <main 
@@ -63,15 +70,80 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
             </div>
 
             {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto w-full">
-              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-surface border-2 border-primary/20 shadow-sm hover:border-primary/40 transition">
+            <div className="relative max-w-2xl mx-auto w-full z-50">
+              <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-surface border-2 border-primary/20 shadow-sm hover:border-primary/40 focus-within:border-primary/50 transition">
                 <SearchIcon />
                 <input
                   type="text"
                   placeholder="Search by chapter name or number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-foreground/80 placeholder-muted"
                 />
               </div>
+
+              {isNumericSearch && (
+                <div className="absolute top-full left-0 right-0 mt-3 bg-surface rounded-2xl shadow-xl border border-primary/10 overflow-hidden text-left flex flex-col p-2 gap-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider">
+                    Quick Jump to {searchNumber}
+                  </div>
+                  
+                  {searchNumber >= 1 && searchNumber <= 114 && (() => {
+                    const surah = chapters.find(c => c.id === searchNumber);
+                    if (!surah) return null;
+                    return (
+                      <Link
+                        href={`/page/${surah.pages[0]}`}
+                        className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          S
+                        </div>
+                        <div>
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Surah {surah.name_simple}</div>
+                          <div className="text-xs text-muted">Go to Surah {searchNumber}</div>
+                        </div>
+                      </Link>
+                    );
+                  })()}
+
+                  {searchNumber >= 1 && searchNumber <= 30 && (
+                    <Link
+                      href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
+                      className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        J
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Juz {searchNumber}</div>
+                        <div className="text-xs text-muted">Go to Juz {searchNumber}</div>
+                      </div>
+                    </Link>
+                  )}
+
+                  {searchNumber >= 1 && searchNumber <= 604 && (
+                    <Link
+                      href={`/page/${searchNumber}`}
+                      className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        P
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground group-hover:text-primary transition-colors">Page {searchNumber}</div>
+                        <div className="text-xs text-muted">Go to Page {searchNumber}</div>
+                      </div>
+                    </Link>
+                  )}
+
+                  {searchNumber > 604 && (
+                    <div className="px-4 py-3 text-sm text-muted text-center">
+                      No results found for number {searchNumber}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
