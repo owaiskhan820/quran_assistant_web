@@ -44,7 +44,15 @@ export default function MediaPlayer() {
   const [isReciterMenuOpen, setIsReciterMenuOpen] = useState(false);
   const [isTranslationMenuOpen, setIsTranslationMenuOpen] = useState(false);
   const [isRepeatMenuOpen, setIsRepeatMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const {
     repeatMode,
@@ -92,17 +100,23 @@ export default function MediaPlayer() {
   return (
     <AnimatePresence>
       <motion.div
-        drag
+        drag={isMobile ? false : true}
         dragMomentum={false}
         dragElastic={0.1}
         dragConstraints={{ top: -1000, left: -1000, right: 1000, bottom: 0 }}
-        initial={{ y: 100, opacity: 0, x: "-50%" }}
-        animate={{ y: 0, opacity: 1, x: "-50%" }}
-        exit={{ y: 100, opacity: 0, x: "-50%" }}
-        whileDrag={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}
-        className="fixed bottom-6 left-1/2 z-[100] w-[95vw] max-w-md touch-none"
+        initial={{ y: 100, opacity: 0, x: isMobile ? "0" : "-50%" }}
+        animate={{ y: 0, opacity: 1, x: isMobile ? "0" : "-50%" }}
+        exit={{ y: 100, opacity: 0, x: isMobile ? "0" : "-50%" }}
+        whileDrag={isMobile ? {} : { scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}
+        className={`fixed z-[100] transition-all duration-300 ${
+          isMobile 
+            ? "bottom-0 left-0 right-0 w-full max-w-full" 
+            : "bottom-6 left-1/2 w-[95vw] max-w-md touch-none"
+        }`}
       >
-        <div ref={containerRef} className="relative bg-white/70 backdrop-blur-3xl border border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[2.5rem] p-4 flex flex-col gap-3 overflow-visible">
+        <div ref={containerRef} className={`relative bg-white/70 backdrop-blur-3xl border border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-4 flex flex-col gap-3 overflow-visible transition-all duration-300 ${
+          isMobile ? "rounded-t-[2.5rem] rounded-b-none" : "rounded-[2.5rem]"
+        }`}>
           
           {/* Subtle Inner Glow */}
           <div className="absolute inset-0 rounded-[2.5rem] border border-white/20 pointer-events-none" />
@@ -110,7 +124,7 @@ export default function MediaPlayer() {
           {/* Drag Handle Indicator */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-200 rounded-full opacity-50 mb-1 pointer-events-none" />
           
-          {/* Qari Selector Popup (Centralized) */}
+          {/* Popups */}
           <AnimatePresence mode="wait">
             {isReciterMenuOpen && (
               <motion.div
@@ -287,7 +301,6 @@ export default function MediaPlayer() {
                               value={repeatRange.start?.ayah || ""}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                // Update the range start in context, but don't jump yet
                                 setRepeatRange({ 
                                   ...repeatRange, 
                                   start: { surah: currentAyah.surah, ayah: val } 
@@ -332,7 +345,6 @@ export default function MediaPlayer() {
                   
                   <button
                     onClick={() => {
-                      // Apply the jump only when confirming
                       if (repeatMode === 'range' && repeatRange.start) {
                         playAyah(currentAyah.surah, repeatRange.start.ayah, true);
                       }
@@ -379,10 +391,6 @@ export default function MediaPlayer() {
                 exit={{ opacity: 0, y: 5 }}
                 className="px-4 py-1 pb-2"
               >
-                {/* 
-                  Urdu IDs for RTL and Arabic Font:
-                  158, 97, 234, 54, 151, 819 
-                */}
                 <p 
                   className={`text-gray-700 leading-relaxed text-center font-medium selection:bg-primary/20 transition-all duration-300
                     ${[158, 97, 234, 54, 151, 819].includes(translationId) 
@@ -400,7 +408,6 @@ export default function MediaPlayer() {
           <div className="flex items-center justify-between bg-white/40 backdrop-blur-xl border border-white/30 rounded-2xl p-2 shadow-inner">
             
             <div className="flex items-center gap-1">
-              {/* Reciter Selector Button */}
               <button 
                 onClick={() => {
                   setIsReciterMenuOpen(!isReciterMenuOpen);
@@ -413,7 +420,6 @@ export default function MediaPlayer() {
                 <User size={20} />
               </button>
 
-              {/* Translation Selector Button */}
               <button 
                 onClick={() => {
                   setIsTranslationMenuOpen(!isTranslationMenuOpen);
@@ -428,7 +434,6 @@ export default function MediaPlayer() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Previous Ayah Button */}
               <button 
                 onClick={playPreviousAyah}
                 className="p-2 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90"
@@ -437,7 +442,6 @@ export default function MediaPlayer() {
                 <SkipBack size={20} fill="currentColor" className="opacity-80" />
               </button>
 
-              {/* Play/Pause Button */}
               <button 
                 onClick={togglePlay}
                 className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95"
@@ -445,7 +449,6 @@ export default function MediaPlayer() {
                 {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
               </button>
 
-              {/* Next Ayah Button */}
               <button 
                 onClick={playNextAyah}
                 className="p-2 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90"
@@ -455,7 +458,6 @@ export default function MediaPlayer() {
               </button>
             </div>
 
-            {/* Autoplay Toggle */}
             <button 
               onClick={toggleAutoplay}
               className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${isAutoplay ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-black/5'}`}
@@ -464,7 +466,6 @@ export default function MediaPlayer() {
               <RefreshCcw size={20} className={isAutoplay ? 'animate-spin-slow' : ''} />
             </button>
 
-            {/* Repeat Toggle */}
             <button 
               onClick={() => {
                 setIsRepeatMenuOpen(!isRepeatMenuOpen);
@@ -479,7 +480,7 @@ export default function MediaPlayer() {
 
           </div>
         </div>
-        </motion.div>
+      </motion.div>
     </AnimatePresence>
   );
 }

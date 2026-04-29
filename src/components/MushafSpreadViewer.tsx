@@ -656,33 +656,21 @@ export default function MushafSpreadViewer({
       <QpcFontStyleRegistry cssText={fontCss} preloadPages={preloadPages} />
 
       <div className="w-full max-w-[280dvh] flex-1 flex items-center justify-center relative">
-        {/* THE MOMENTUM ARROWS (Moved to root stacking context for desktop visibility) */}
-        <AnimatePresence>
-          {isPending && pendingDirection === 'next' && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute left-4 lg:left-10 top-1/2 -translate-y-1/2 z-[100] pointer-events-none animate-arrow-pulse-left lg:hidden"
-            >
-              <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
-                <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
-              </div>
-            </motion.div>
-          )}
-          {isPending && pendingDirection === 'prev' && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute right-4 lg:right-10 top-1/2 -translate-y-1/2 z-[100] pointer-events-none animate-arrow-pulse-right lg:hidden"
-            >
-              <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
-                <span className="text-5xl leading-none -ml-1 mb-1 font-light">‹</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* THE MOMENTUM ARROWS (Tailwind Powered) */}
+        {isPending && pendingDirection === 'next' && (
+          <div className="absolute left-4 lg:left-10 top-1/2 z-[100] pointer-events-none animate-arrow-pulse-left lg:hidden transition-opacity duration-300">
+            <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
+              <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
+            </div>
+          </div>
+        )}
+        {isPending && pendingDirection === 'prev' && (
+          <div className="absolute right-4 lg:right-10 top-1/2 z-[100] pointer-events-none animate-arrow-pulse-right lg:hidden transition-opacity duration-300">
+            <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
+              <span className="text-5xl leading-none -mr-1 mb-1 font-light">‹</span>
+            </div>
+          </div>
+        )}
 
         {/* THE BOUNDARY FEEDBACK */}
         <AnimatePresence>

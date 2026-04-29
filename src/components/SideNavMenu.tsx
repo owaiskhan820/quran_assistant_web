@@ -170,27 +170,8 @@ export default function SideNavMenu({
                 </button>
               </div>
 
-              {/* Tools Section */}
-              {/*
-              <div className="flex flex-col gap-2">
-                <Link
-                  href="/breakdown"
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-2xl hover:bg-emerald-100 transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-gray-900">Breakdown Mode</span>
-                    <span className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">Ayah Morphology (Sarf/Nahw)</span>
-                  </div>
-                </Link>
-              </div>
-              */}
+              {/* Tools Section (Future) */}
+
 
               {/* Search Bar */}
               <div className="relative group">
