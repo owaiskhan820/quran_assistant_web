@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -59,27 +58,18 @@ export default function SideNavMenu({
   ];
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-sm"
-          />
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-[100] bg-black/40 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+      />
 
-          {/* Drawer */}
-          <motion.div
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed top-0 left-0 bottom-0 z-[110] w-full max-w-[340px] bg-white shadow-2xl flex flex-col"
-          >
-            {/* Header Area */}
+      {/* Drawer */}
+      <div
+        className={`fixed top-0 left-0 bottom-0 z-[110] w-full max-w-[340px] bg-white shadow-2xl flex flex-col will-change-transform transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        {/* Header Area */}
             <div className="flex flex-col gap-6 px-6 py-8 border-b border-gray-100 bg-surface/30">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -126,7 +116,7 @@ export default function SideNavMenu({
                           />
                         </button>
 
-                        <AnimatePresence>
+                        <>
                           {isUserMenuOpen && (
                             <>
                               {/* Overlay to catch clicks outside */}
@@ -134,10 +124,7 @@ export default function SideNavMenu({
                                 className="fixed inset-0 z-40" 
                                 onClick={() => setIsUserMenuOpen(false)}
                               />
-                              <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              <div
                                 className="absolute right-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 overflow-hidden"
                               >
                                 <button
@@ -151,10 +138,10 @@ export default function SideNavMenu({
                                   </svg>
                                   Sign Out
                                 </button>
-                              </motion.div>
+                              </div>
                             </>
                           )}
-                        </AnimatePresence>
+                        </>
                       </div>
                     )}
                   </div>
@@ -428,9 +415,7 @@ export default function SideNavMenu({
                 </div>
               )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
+    </>
   );
 }

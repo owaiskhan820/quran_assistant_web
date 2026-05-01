@@ -649,20 +649,17 @@ export default function MushafSpreadViewer({
 
       <div className="w-full max-w-[280dvh] flex-1 flex items-center justify-center relative">
         {/* THE MOMENTUM ARROWS (Tailwind Powered) */}
-        {isPending && pendingDirection === 'next' && (
-          <div className="absolute left-4 lg:left-10 top-1/2 z-[100] pointer-events-none animate-arrow-pulse-left lg:hidden transition-opacity duration-300">
-            <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
-              <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
-            </div>
+        <div className={`absolute left-4 lg:left-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isPending && pendingDirection === 'next' ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="animate-arrow-pulse-left bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-primary">
+            <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
           </div>
-        )}
-        {isPending && pendingDirection === 'prev' && (
-          <div className="absolute right-4 lg:right-10 top-1/2 z-[100] pointer-events-none animate-arrow-pulse-right lg:hidden transition-opacity duration-300">
-            <div className="bg-white/90 backdrop-blur-xl rounded-full w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] text-primary">
-              <span className="text-5xl leading-none -mr-1 mb-1 font-light">‹</span>
-            </div>
+        </div>
+        
+        <div className={`absolute right-4 lg:right-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isPending && pendingDirection === 'prev' ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="animate-arrow-pulse-right bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-primary">
+            <span className="text-5xl leading-none -mr-1 mb-1 font-light">‹</span>
           </div>
-        )}
+        </div>
 
         {/* THE BOUNDARY FEEDBACK */}
         <AnimatePresence>

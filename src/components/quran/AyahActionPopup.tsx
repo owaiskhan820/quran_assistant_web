@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { Play, BookOpen } from "lucide-react";
 
 interface AyahActionPopupProps {
@@ -31,7 +30,7 @@ export default function AyahActionPopup({
   };
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <>
           {/* Backdrop to catch clicks outside */}
@@ -44,20 +43,12 @@ export default function AyahActionPopup({
             }} 
           />
           
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              y: 0,
-              x: `calc(-50% + ${shift}px)` 
-            }}
-            exit={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+          <div
             className={`absolute ${isTop ? "bottom-full mb-3" : "top-full mt-3"} left-1/2 z-[9999] pointer-events-auto`}
             style={{
               filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))",
-              transformOrigin: isTop ? "bottom center" : "top center"
+              transformOrigin: isTop ? "bottom center" : "top center",
+              transform: `translateX(calc(-50% + ${shift}px))`
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -121,9 +112,9 @@ export default function AyahActionPopup({
                 }}
               />
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
+    </>
   );
 }

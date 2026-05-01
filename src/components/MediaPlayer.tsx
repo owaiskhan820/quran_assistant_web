@@ -112,7 +112,7 @@ export default function MediaPlayer() {
             : "bottom-6 left-1/2 w-[95vw] max-w-md touch-none"
         }`}
       >
-        <div ref={containerRef} className={`relative bg-white/70 backdrop-blur-3xl border border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-4 flex flex-col gap-3 overflow-visible transition-all duration-300 ${
+        <div ref={containerRef} className={`relative bg-white/95 backdrop-blur-md border border-white/30 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-3 overflow-visible transition-all duration-300 ${
           isMobile ? "rounded-t-[2.5rem] rounded-b-none" : "rounded-[2.5rem]"
         }`}>
           
@@ -130,7 +130,7 @@ export default function MediaPlayer() {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-2 z-50 max-h-[300px] overflow-y-auto custom-scrollbar"
+                className="absolute bottom-[80px] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-2 z-50 max-h-[300px] overflow-y-auto custom-scrollbar"
               >
                 <div className="sticky top-0 bg-white/90 backdrop-blur-sm px-4 py-2 border-b border-gray-50 mb-1 z-10">
                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Choose Reciter</span>
@@ -168,7 +168,7 @@ export default function MediaPlayer() {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-2 z-50 max-h-[300px] overflow-y-auto custom-scrollbar"
+                className="absolute bottom-[80px] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-2 z-50 max-h-[300px] overflow-y-auto custom-scrollbar"
               >
                 <div className="sticky top-0 bg-white/90 backdrop-blur-sm px-4 py-2 border-b border-gray-50 mb-1 z-10">
                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Choose Translation</span>
@@ -218,7 +218,7 @@ export default function MediaPlayer() {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="absolute bottom-[calc(100%+12px)] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-4 z-50 px-4"
+                className="absolute bottom-[80px] left-0 right-0 mx-auto w-full max-w-[320px] bg-white/95 backdrop-blur-md border border-gray-100 shadow-2xl rounded-2xl overflow-hidden py-4 z-50 px-4 max-h-[60vh] overflow-y-auto custom-scrollbar"
               >
                 <div className="flex flex-col gap-5">
                   <div className="flex items-center justify-between mb-1">
@@ -380,14 +380,14 @@ export default function MediaPlayer() {
           </div>
 
           {/* Translation Text Display */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {currentAyah && translationText && (
               <motion.div
                 key={`${currentAyah.surah}:${currentAyah.ayah}-${translationId}`}
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 5 }}
-                className="px-4 py-1 pb-2"
+                className="px-4 py-1 pb-2 max-h-[25vh] overflow-y-auto custom-scrollbar"
               >
                 <p 
                   className={`text-gray-700 leading-relaxed text-center font-medium selection:bg-primary/20 transition-all duration-300
@@ -403,7 +403,7 @@ export default function MediaPlayer() {
           </AnimatePresence>
 
           {/* Controls Section - Glassy Finish */}
-          <div className="flex items-center justify-between bg-white/40 backdrop-blur-xl border border-white/30 rounded-2xl p-2 shadow-inner">
+          <div className="flex items-center justify-between bg-white/80 border border-gray-100 rounded-2xl p-2 shadow-sm">
             
             <div className="flex items-center gap-1">
               <button 

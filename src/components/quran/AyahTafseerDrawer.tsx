@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { TAFSIRS, DEFAULT_TAFSIR_ID, getTafsirsByLanguage } from "@/lib/tafsirs";
@@ -88,7 +87,7 @@ export default function AyahTafseerDrawer({
         } else {
           setError("Commentary not found for this ayah.");
         }
-      } catch (err: unknown) {
+      } catch (_err) {
         setError("Network error. Please check your connection.");
       } finally {
         setIsLoading(false);
@@ -106,28 +105,18 @@ export default function AyahTafseerDrawer({
   const siteIsUrdu = language === "ur";
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[1000] bg-black/30 backdrop-blur-sm"
-          />
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-[1000] bg-black/40 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+      />
 
-          {/* Side Drawer Unit */}
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className={`fixed top-0 right-0 bottom-0 z-[1010] w-[90vw] max-w-[420px] bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] flex flex-col ${siteIsUrdu ? "font-sans text-right" : ""
-              }`}
-          >
-            {/* Nav Header */}
+      {/* Side Drawer Unit */}
+      <div
+        className={`fixed top-0 right-0 bottom-0 z-[1010] w-[90vw] max-w-[420px] bg-white shadow-2xl flex flex-col will-change-transform transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"} ${siteIsUrdu ? "font-sans text-right" : ""}`}
+      >
+        {/* Nav Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-divider bg-white sticky top-0 z-10">
               <div className={`flex flex-col ${siteIsUrdu ? "items-end" : "items-start"}`}>
                 <h2 className={`text-xl font-bold text-gray-900 ${siteIsUrdu ? "font-urdu" : "font-sans"}`}>
@@ -227,9 +216,7 @@ export default function AyahTafseerDrawer({
                 )}
               </div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAudioContext } from "@/context/AudioContext";
 import Link from "next/link";
 import { Chapter, Juz } from "@/types/quran";

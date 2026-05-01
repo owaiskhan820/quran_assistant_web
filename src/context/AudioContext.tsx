@@ -84,10 +84,10 @@ export const RECITERS: Reciter[] = [
 export const TRANSLATIONS: Translation[] = [
   // English
   { id: 20, name: "Sahih International", author: "Sahih International", slug: "en-sahih" },
-  { id: 131, name: "The Clear Quran", author: "Dr. Mustafa Khattab", slug: "clear-quran" },
-  { id: 171, name: "Abdul Haleem", author: "M.A.S. Abdel Haleem", slug: "en-abdul-haleem" },
+  { id: 84, name: "Taqi Usmani", author: "Mufti Taqi Usmani", slug: "en-taqi-usmani" },
+  { id: 85, name: "Abdul Haleem", author: "M.A.S. Abdel Haleem", slug: "en-abdul-haleem" },
   { id: 22, name: "Yusuf Ali", author: "Abdullah Yusuf Ali", slug: "en-yusuf-ali" },
-  { id: 167, name: "Maarif-ul-Quran", author: "Mufti Muhammad Shafi", slug: "en-maarif-ul-quran" },
+  { id: 95, name: "Tafheem-ul-Quran (English)", author: "Syed Abu Ali Maududi", slug: "en-maududi" },
   
   // Urdu
   { id: 158, name: "Bayan-ul-Quran (Urdu)", author: "Dr. Israr Ahmad", slug: "bayan-ul-quran" },
@@ -115,8 +115,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedReciter = localStorage.getItem("defaultReciterId");
       const savedTranslation = localStorage.getItem("defaultTranslationId");
       
-      if (savedReciter) setReciterId(parseInt(savedReciter));
-      if (savedTranslation) setTranslationId(parseInt(savedTranslation));
+      const pReciter = parseInt(savedReciter || "");
+      const pTrans = parseInt(savedTranslation || "");
+      if (!isNaN(pReciter)) setReciterId(pReciter);
+      if (!isNaN(pTrans)) {
+        setTranslationId(pTrans === 0 || TRANSLATIONS.some(t => t.id === pTrans) ? pTrans : 20);
+      }
     }
   }, []);
 
@@ -142,7 +146,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (status === "authenticated" && session?.user) {
       if (session.user.language) setLanguageState(session.user.language as 'en' | 'ur');
       if (session.user.preferred_qari) setReciterId(session.user.preferred_qari);
-      if (session.user.preferred_translation) setTranslationId(session.user.preferred_translation);
+      if (session.user.preferred_translation !== undefined) {
+        const pTrans = session.user.preferred_translation;
+        setTranslationId(pTrans === 0 || TRANSLATIONS.some(t => t.id === pTrans) ? pTrans : 20);
+      }
       if (session.user.last_opened_page) {
         setLastReadState({
           pageNumber: session.user.last_opened_page.pageNumber,
@@ -156,9 +163,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedRead = localStorage.getItem('quran_assistant_last_read');
       
       if (savedLang === 'ur' || savedLang === 'en') setLanguageState(savedLang);
-      if (savedReciter) setReciterId(Number(savedReciter));
-      if (savedTranslation) setTranslationId(Number(savedTranslation));
-      if (savedRead) {
+      
+      const pRec = Number(savedReciter);
+      const pTrans = Number(savedTranslation);
+      if (!isNaN(pRec) && pRec > 0) setReciterId(pRec);
+      if (!isNaN(pTrans) && savedTranslation !== null && savedTranslation !== "undefined") {
+        setTranslationId(pTrans === 0 || TRANSLATIONS.some(t => t.id === pTrans) ? pTrans : 20);
+      }
+      
+      if (savedRead && savedRead !== "undefined") {
         try {
           const parsed = JSON.parse(savedRead);
           setLastReadState({ pageNumber: parsed.pageNumber, surahName: parsed.surahName });
