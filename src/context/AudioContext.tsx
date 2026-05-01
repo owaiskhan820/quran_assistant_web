@@ -136,7 +136,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isTafseerVisible, setIsTafseerVisible] = useState(false);
 
   const fetchedPages = useRef<Set<number>>(new Set());
-  const languageRef = useRef(language);
 
   // Initial Load Logic
   useEffect(() => {
@@ -163,13 +162,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           const parsed = JSON.parse(savedRead);
           setLastReadState({ pageNumber: parsed.pageNumber, surahName: parsed.surahName });
-        } catch (e) {}
+        } catch { }
       }
     }
   }, [status, session]);
 
   // Unified Syncing Logic
-  const syncPreferences = useCallback((updates: any) => {
+  const syncPreferences = useCallback((updates: Record<string, unknown>) => {
     if (status === "authenticated") {
       updateUserPreferences(updates);
     } else {
@@ -391,7 +390,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playAyahRef.current = playAyah;
   }, [playAyah]);
 
-  const playUrl = useCallback((url: string, id: string, surah?: number, ayah?: number) => {
+  const playUrl = useCallback((url: string, id: string) => {
     if (!wordAudioRef.current) return;
     
     // Decoupled from currentAyah to prevent triggering the main MediaPlayer
@@ -438,7 +437,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let prevAyah = currentAyah.ayah - 1;
     if (prevAyah < 1) {
       if (prevSurah <= 1) {
-         ayahAudioRef.current && (ayahAudioRef.current.currentTime = 0);
+         if (ayahAudioRef.current) ayahAudioRef.current.currentTime = 0;
          return;
       }
       prevSurah -= 1;
@@ -537,11 +536,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=translation&language=${language}`);
       const data = await res.json();
-      if (data.verses) {
-        const newTranslations: Record<string, string> = {};
-        data.verses.forEach((verse: any) => {
-          verse.words.forEach((word: any) => {
-            if (word.translation && word.translation.text) {
+        if (data.verses) {
+          const newTranslations: Record<string, string> = {};
+          data.verses.forEach((verse: { verse_key: string; words: { position: number; translation?: { text: string } }[] }) => {
+            verse.words.forEach((word: { position: number; translation?: { text: string } }) => {
+              if (word.translation && word.translation.text) {
               const location = `${verse.verse_key}:${word.position}`;
               newTranslations[location] = word.translation.text;
             }

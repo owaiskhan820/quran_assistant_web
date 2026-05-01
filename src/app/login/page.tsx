@@ -40,7 +40,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold font-serif text-primary tracking-tight">Quran Kareem</h1>
+          <h1 className="text-4xl font-bold font-serif text-primary tracking-tight">Quran Library</h1>
           <p className="text-muted font-medium">Please sign in to continue your journey</p>
         </div>
 

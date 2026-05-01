@@ -70,11 +70,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async session({ session, user }) {
       if (session.user) {
-        session.user.id = user.id;
-        session.user.language = (user as any).language;
-        session.user.preferred_qari = (user as any).preferred_qari;
-        session.user.preferred_translation = (user as any).preferred_translation;
-        session.user.last_opened_page = (user as any).last_opened_page;
+        type CustomUser = {
+          language?: string;
+          preferred_qari?: number;
+          preferred_translation?: number;
+          last_opened_page?: unknown;
+        };
+        const u = user as typeof user & CustomUser;
+        session.user.id = u.id;
+        session.user.language = u.language;
+        session.user.preferred_qari = u.preferred_qari;
+        session.user.preferred_translation = u.preferred_translation;
+        session.user.last_opened_page = u.last_opened_page;
       }
       return session;
     },

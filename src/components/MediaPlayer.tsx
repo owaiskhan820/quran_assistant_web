@@ -7,9 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Play, 
   Pause, 
-  RotateCcw, 
   X, 
-  ChevronUp, 
   User, 
   Check, 
   RefreshCcw,
@@ -63,8 +61,6 @@ export default function MediaPlayer() {
     setRepeatRange,
     rangeRepeatCount,
     setRangeRepeatCount,
-    currentRepeatIndex,
-    rangeCycleIndex,
     isTafseerVisible
   } = useAudioContext();
 
@@ -88,9 +84,11 @@ export default function MediaPlayer() {
 
   // Close menus when ayah changes or player is closed
   useEffect(() => {
-    setIsReciterMenuOpen(false);
-    setIsTranslationMenuOpen(false);
-    setIsRepeatMenuOpen(false);
+    setTimeout(() => {
+      setIsReciterMenuOpen(false);
+      setIsTranslationMenuOpen(false);
+      setIsRepeatMenuOpen(false);
+    }, 0);
   }, [currentAyah?.surah, currentAyah?.ayah]);
 
   if (!currentAyah || isTafseerVisible) return null;

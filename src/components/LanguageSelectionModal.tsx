@@ -12,7 +12,7 @@ export default function LanguageSelectionModal() {
     // Only show if no language is set in local storage
     const hasLanguage = localStorage.getItem('language') || localStorage.getItem('app_language');
     if (!hasLanguage) {
-      setShowModal(true);
+      setTimeout(() => setShowModal(true), 0);
     }
   }, []);
 
@@ -21,6 +21,7 @@ export default function LanguageSelectionModal() {
   const handleSelect = (lang: 'en' | 'ur') => {
     setLanguage(lang);
     setShowModal(false);
+    window.dispatchEvent(new Event('languageSelected'));
   };
 
   return (

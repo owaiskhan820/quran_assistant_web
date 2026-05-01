@@ -5,16 +5,6 @@ import Link from "next/link";
 import { useState } from "react";
 import SearchIcon from "@/components/icons/SearchIcon";
 
-export default function SettingsClient() {
-  const { 
-    reciterId, 
-    setReciter, 
-    reciters, 
-    translationId, 
-    setTranslationId, 
-    translations 
-  } = useAudioContext();
-
 type Category = "display" | "reciter" | "translation" | "profile" | "account" | "appearance";
 
 export default function SettingsClient() {
@@ -26,7 +16,8 @@ export default function SettingsClient() {
     setTranslationId, 
     translations,
     language,
-    setLanguage
+    setLanguage,
+    lastRead
   } = useAudioContext();
 
   const [activeCategory, setActiveCategory] = useState<Category>("display");
@@ -166,164 +157,147 @@ export default function SettingsClient() {
         <main className="flex-1 bg-white md:bg-transparent overflow-y-auto p-6 lg:p-12">
           <div className="max-w-4xl mx-auto space-y-16">
             
-            {/* Display Language Section */}
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div>
-                <h3 className="text-3xl font-serif font-bold text-[#1a4d4a] mb-2">Display Language</h3>
-                <p className="text-sm text-slate-500">Choose your preferred interface language for a serene experience.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[
-                  { id: 'en', name: 'English', desc: 'Default international interface', icon: 'A' },
-                  { id: 'ur', name: 'Urdu', desc: 'اردو انٹرفیس منتخب کریں', icon: 'ع' }
-                ].map((lang) => (
-                  <button
-                    key={lang.id}
-                    onClick={() => setLanguage(lang.id as 'en' | 'ur')}
-                    className={`relative p-8 rounded-2xl border-2 transition-all text-left flex items-start gap-5 ${
-                      language === lang.id
-                        ? "border-[#1a4d4a] bg-white shadow-xl ring-1 ring-emerald-900/5"
-                        : "border-gray-100 bg-white hover:border-gray-200"
-                    }`}
-                  >
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-xl font-bold ${
-                      language === lang.id ? "bg-[#1a4d4a] text-white" : "bg-slate-100 text-slate-400"
-                    }`}>
-                      {lang.icon}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className={`text-xl font-bold ${language === lang.id ? "text-slate-900" : "text-slate-800"}`}>
-                        {lang.name}
-                      </span>
-                      <span className="text-sm text-slate-400">{lang.desc}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Reciter Section */}
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {activeCategory === "display" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div>
-                  <h3 className="text-3xl font-serif font-bold text-[#1a4d4a] mb-2">Reciter (Qari)</h3>
-                  <p className="text-sm text-slate-500">Select your favorite reciter to listen to the Divine word.</p>
+                  <h3 className="text-3xl font-serif font-bold text-[#1a4d4a] mb-2">Display Language</h3>
+                  <p className="text-sm text-slate-500">Choose your preferred interface language for a serene experience.</p>
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-3">
-                {reciters.slice(0, 3).map((reciter) => (
-                  <button
-                    key={reciter.id}
-                    onClick={() => setReciter(reciter.id)}
-                    className={`flex items-center gap-6 p-4 rounded-2xl border transition-all text-left group ${
-                      reciterId === reciter.id
-                        ? "bg-white border-emerald-100 shadow-md"
-                        : "bg-white border-transparent hover:border-gray-100"
-                    }`}
-                  >
-                    <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 grayscale group-hover:grayscale-0 transition-all border-2 border-white shadow-sm">
-                      <img 
-                        src={`https://api.quran.com/api/v4/verses/by_key/1:1?audio=${reciter.id}`} 
-                        className="w-full h-full object-cover bg-slate-200"
-                        alt={reciter.name}
-                        onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${reciter.name}&background=f1f5f9&color=475569`;
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-md font-bold text-slate-900">{reciter.name}</h4>
-                      <div className="flex gap-2 mt-1.5">
-                        {reciter.style && (
-                          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-full">
-                            {reciter.style}
-                          </span>
-                        )}
-                        <span className="px-2.5 py-0.5 bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-full">
-                          MUJAWWAD
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      reciterId === reciter.id ? "bg-[#1a4d4a] border-[#1a4d4a]" : "border-slate-200"
-                    }`}>
-                      {reciterId === reciter.id && <div className="w-2 h-2 bg-white rounded-full" />}
-                    </div>
-                  </button>
-                ))}
-                
-                <div className="grid grid-cols-2 gap-3 mt-1">
-                  {reciters.slice(3, 5).map(reciter => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {[
+                    { id: 'en', name: 'English', desc: 'Default international interface', icon: 'A' },
+                    { id: 'ur', name: 'Urdu', desc: 'اردو انٹرفیس منتخب کریں', icon: 'ع' }
+                  ].map((lang) => (
                     <button
-                      key={reciter.id}
-                      onClick={() => setReciter(reciter.id)}
-                      className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left bg-white ${
-                        reciterId === reciter.id ? "border-emerald-100 shadow-sm" : "border-transparent hover:border-gray-50"
+                      key={lang.id}
+                      onClick={() => setLanguage(lang.id as 'en' | 'ur')}
+                      className={`relative p-8 rounded-2xl border-2 transition-all text-left flex items-start gap-5 ${
+                        language === lang.id
+                          ? "border-[#1a4d4a] bg-white shadow-xl ring-1 ring-emerald-900/5"
+                          : "border-gray-100 bg-white hover:border-gray-200"
                       }`}
                     >
-                      <span className="text-sm font-bold text-slate-800">{reciter.name}</span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        reciterId === reciter.id ? "bg-[#1a4d4a] border-[#1a4d4a]" : "border-slate-200"
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-xl font-bold ${
+                        language === lang.id ? "bg-[#1a4d4a] text-white" : "bg-slate-100 text-slate-400"
                       }`}>
-                         {reciterId === reciter.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        {lang.icon}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-xl font-bold ${language === lang.id ? "text-slate-900" : "text-slate-800"}`}>
+                          {lang.name}
+                        </span>
+                        <span className="text-sm text-slate-400">{lang.desc}</span>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
+            )}
 
-              <div className="pt-8 flex justify-center">
-                <Link 
-                  href={lastRead ? `/page/${lastRead.pageNumber}` : "/page/1"}
-                  className="px-10 py-3.5 bg-[#1a4d4a] text-white rounded-xl font-bold flex items-center gap-3 shadow-xl shadow-emerald-900/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                  Finish & Return to Mushaf
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-
-            {/* Verse Translation Section */}
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div>
-                <h3 className="text-3xl font-serif font-bold text-[#1a4d4a] mb-2">Verse Translation</h3>
-                <p className="text-sm text-slate-500">Enable multiple translations to deepen your understanding of the Quran.</p>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-gray-100 divide-y divide-gray-50 overflow-hidden shadow-sm">
-                {translations.slice(0, 5).map((t) => (
-                  <div 
-                    key={t.id}
-                    className="flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors cursor-pointer group"
-                    onClick={() => setTranslationId(t.id)}
-                  >
-                    <div>
-                      <h4 className="text-md font-bold text-slate-900">{t.name}</h4>
-                      <p className="text-xs text-slate-400 mt-0.5">{t.author}</p>
-                    </div>
-                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                      translationId === t.id ? "bg-[#1a4d4a]" : "bg-slate-200"
-                    }`}>
-                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
-                        translationId === t.id ? "translate-x-5" : "translate-x-0"
-                      }`} />
-                    </div>
+            {activeCategory === "reciter" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-3xl font-serif font-bold text-[#1a4d4a] mb-2">Reciter (Qari)</h3>
+                    <p className="text-sm text-slate-500">Select your favorite reciter to listen to the Divine word.</p>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
+                <div className="flex flex-col gap-3">
+                  {reciters.slice(0, 3).map((reciter) => (
+                    <button
+                      key={reciter.id}
+                      onClick={() => setReciter(reciter.id)}
+                      className={`flex items-center gap-6 p-4 rounded-2xl border transition-all text-left group ${
+                        reciterId === reciter.id
+                          ? "bg-white border-emerald-100 shadow-md"
+                          : "bg-white border-transparent hover:border-gray-100"
+                      }`}
+                    >
+                      <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 grayscale group-hover:grayscale-0 transition-all border-2 border-white shadow-sm">
+                        <img 
+                          src={`https://api.quran.com/api/v4/verses/by_key/1:1?audio=${reciter.id}`} 
+                          className="w-full h-full object-cover bg-slate-200"
+                          alt={reciter.name}
+                          onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${reciter.name}&background=f1f5f9&color=475569`;
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-md font-bold text-slate-900">{reciter.name}</h4>
+                        <div className="flex gap-2 mt-1.5">
+                          {reciter.style && (
+                            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded-full">
+                              {reciter.style}
+                            </span>
+                          )}
+                          <span className="px-2.5 py-0.5 bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-full">
+                            MUJAWWAD
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        reciterId === reciter.id ? "bg-[#1a4d4a] border-[#1a4d4a]" : "border-slate-200"
+                      }`}>
+                        {reciterId === reciter.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                      </div>
+                    </button>
+                  ))}
+                  
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    {reciters.slice(3, 5).map(reciter => (
+                      <button
+                        key={reciter.id}
+                        onClick={() => setReciter(reciter.id)}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left bg-white ${
+                          reciterId === reciter.id ? "border-emerald-100 shadow-sm" : "border-transparent hover:border-gray-50"
+                        }`}
+                      >
+                        <span className="text-sm font-bold text-slate-800">{reciter.name}</span>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          reciterId === reciter.id ? "bg-[#1a4d4a] border-[#1a4d4a]" : "border-slate-200"
+                        }`}>
+                           {reciterId === reciter.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeCategory === "translation" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div>
+                  <h3 className="text-3xl font-serif font-bold text-[#1a4d4a] mb-2">Verse Translation</h3>
+                  <p className="text-sm text-slate-500">Enable multiple translations to deepen your understanding of the Quran.</p>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-gray-100 divide-y divide-gray-50 overflow-hidden shadow-sm">
+                  {translations.slice(0, 5).map((t) => (
+                    <div 
+                      key={t.id}
+                      className="flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                      onClick={() => setTranslationId(t.id)}
+                    >
+                      <div>
+                        <h4 className="text-md font-bold text-slate-900">{t.name}</h4>
+                        <p className="text-xs text-slate-400 mt-0.5">{t.author}</p>
+                      </div>
+                      <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
+                        translationId === t.id ? "bg-[#1a4d4a]" : "bg-slate-200"
+                      }`}>
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
+                          translationId === t.id ? "translate-x-5" : "translate-x-0"
+                        }`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {["profile", "account", "appearance"].includes(activeCategory) && (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -340,10 +314,23 @@ export default function SettingsClient() {
                 </div>
               </div>
             )}
+
+            <div className="pt-8 flex justify-center">
+              <Link 
+                href={lastRead ? `/page/${lastRead.pageNumber}` : "/page/1"}
+                className="px-10 py-3.5 bg-[#1a4d4a] text-white rounded-xl font-bold flex items-center gap-3 shadow-xl shadow-emerald-900/20 hover:scale-105 active:scale-95 transition-all"
+              >
+                Finish & Return to Mushaf
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </Link>
+            </div>
+
           </div>
         </main>
       </div>
     </div>
   );
-}
 }

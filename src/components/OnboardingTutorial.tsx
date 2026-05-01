@@ -9,15 +9,22 @@ export default function OnboardingTutorial() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // Only show if they HAVE selected a language
-    const hasLanguage = localStorage.getItem('language') || localStorage.getItem('app_language');
-    // But HAVEN'T seen the onboarding
-    const hasSeenOnboarding = localStorage.getItem('has_seen_onboarding');
+    const checkAndShow = () => {
+      // Only show if they HAVE selected a language
+      const hasLanguage = localStorage.getItem('language') || localStorage.getItem('app_language');
+      // But HAVEN'T seen the onboarding
+      const hasSeenOnboarding = localStorage.getItem('has_seen_onboarding');
 
-    if (hasLanguage && !hasSeenOnboarding) {
-      setShowModal(true);
-    }
-  }, [language]); // Reacts when LanguageSelectionModal sets the language
+      if (hasLanguage && !hasSeenOnboarding) {
+        setTimeout(() => setShowModal(true), 0);
+      }
+    };
+
+    window.addEventListener('languageSelected', checkAndShow);
+    checkAndShow();
+
+    return () => window.removeEventListener('languageSelected', checkAndShow);
+  }, []); // Run on mount and when custom event fires
 
   if (!showModal || !language) return null;
 
@@ -30,7 +37,7 @@ export default function OnboardingTutorial() {
 
   const content = {
     en: {
-      title: "Welcome to Quran Kareem",
+      title: "Welcome to Quran Library",
       wordsText: "Hover (Desktop) or Tap (Mobile) on any Arabic word to see its meaning and hear its pronunciation.",
       ayahText: "Tap on any Ayah end sign (۝) to view options to play the recitation or read the complete Tafseer/Translation.",
       button: "Bismillah, Let's Begin",
@@ -55,7 +62,7 @@ export default function OnboardingTutorial() {
           <div className="p-3 bg-primary/10 text-primary rounded-full mb-2">
             <Info size={28} />
           </div>
-          <h2 className={`font-bold text-gray-900 ${isUrdu ? 'text-3xl font-arabic mt-1' : 'text-2xl tracking-tight'}`}>
+          <h2 className={`font-bold text-gray-900 ${isUrdu ? 'text-4xl font-urdu mt-1' : 'text-2xl tracking-tight'}`}>
             {t.title}
           </h2>
         </div>
@@ -66,7 +73,7 @@ export default function OnboardingTutorial() {
             <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0 mt-0.5">
               <MousePointerClick size={20} />
             </div>
-            <p className={`${isUrdu ? 'text-lg font-arabic font-medium' : 'text-md'} text-gray-700 leading-relaxed`}>
+            <p className={`${isUrdu ? 'text-2xl font-urdu font-medium leading-[1.8]' : 'text-md'} text-gray-700 leading-relaxed`}>
               {t.wordsText}
             </p>
           </div>
@@ -76,7 +83,7 @@ export default function OnboardingTutorial() {
             <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0 mt-0.5">
               <Settings2 size={20} />
             </div>
-            <p className={`${isUrdu ? 'text-lg font-arabic font-medium' : 'text-md'} text-gray-900 leading-relaxed`}>
+            <p className={`${isUrdu ? 'text-2xl font-urdu font-medium leading-[1.8]' : 'text-md'} text-gray-900 leading-relaxed`}>
               {t.ayahText}
             </p>
           </div>
@@ -84,7 +91,7 @@ export default function OnboardingTutorial() {
 
         <button
           onClick={handleDismiss}
-          className={`w-full py-4 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2 ${isUrdu ? 'font-arabic text-2xl font-bold' : 'font-bold'}`}
+          className={`w-full py-4 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2 ${isUrdu ? 'font-urdu text-3xl font-bold' : 'font-bold'}`}
         >
           {t.button}
         </button>

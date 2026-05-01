@@ -39,12 +39,12 @@ const notoArabic = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "Quran Kareem",
+  title: "Quran Library",
   description: "Browse and read the Quran",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "Quran Kareem",
+    title: "Quran Library",
     statusBarStyle: "black-translucent",
   },
   formatDetection: {

@@ -53,7 +53,7 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
               href="/"
               className="text-xl font-bold tracking-tight text-primary font-sans"
             >
-              Quran Kareem
+              Quran Library
             </Link>
           </div>
 

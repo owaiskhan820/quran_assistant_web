@@ -22,8 +22,6 @@ export default function AyahTafseerDrawer({
   surahId,
   surahName,
   ayahNumber,
-  arabicWords,
-  pageNumber,
   language,
 }: AyahTafseerDrawerProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("");
@@ -90,7 +88,7 @@ export default function AyahTafseerDrawer({
         } else {
           setError("Commentary not found for this ayah.");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError("Network error. Please check your connection.");
       } finally {
         setIsLoading(false);

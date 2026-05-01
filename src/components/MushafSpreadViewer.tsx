@@ -6,12 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
 import { useAudioContext } from "@/context/AudioContext";
-import type { MushafLine } from "@/types/mushaf";
+import type { MushafLine, MushafWord } from "@/types/mushaf";
 import { getJuzForPage } from "@/utils/juz";
 import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
 import MushafSkeleton from "@/components/MushafSkeleton";
-import { useSession } from "next-auth/react";
-import { updateUserPreferences } from "@/actions/user";
 import chaptersData from "../../public/data/chapters/chapters.json";
 import AyahActionPopup from "./quran/AyahActionPopup";
 import AyahTafseerDrawer from "./quran/AyahTafseerDrawer";
@@ -58,8 +56,8 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   pageNumber: number;
   lines: MushafLine[];
   onOpenTafseer: (surah: number, ayah: number, arabicWords: string[], pageNumber: number) => void;
-  actionMenuWord: any;
-  setActionMenuWord: (word: any) => void;
+  actionMenuWord: MushafWord | null;
+  setActionMenuWord: (word: MushafWord | null) => void;
   menuPosition: "top" | "bottom";
   setMenuPosition: (pos: "top" | "bottom") => void;
   menuShift: number;
@@ -87,12 +85,11 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
       }
       setMenuShift(newShift);
     }
-  }, [actionMenuWord]);
+  }, [actionMenuWord, setMenuShift]);
 
   useEffect(() => {
-    setIsFontLoaded(false);
+    setTimeout(() => setIsFontLoaded(false), 0);
     const fontName = `p${pageNumber}`;
-    const font = new FontFace(fontName, `url(/fonts/qpc/p${pageNumber}.woff2)`);
     
     // Safety check with document.fonts
     document.fonts.load(`1em ${fontName}`).then(() => {
@@ -197,7 +194,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
               const isAyahActive = activeId === `${word.s}:${word.a}`;
               const isActive = isWordActive || (word.isStopSign && isAyahActive);
 
-              const handlePlay = (e?: React.MouseEvent) => {
+              const handlePlay = () => {
                 if (word.isStopSign) {
                   // Ayah end sign clicked: show action menu
                   const lineIdxForMenu = lineIdx;
@@ -338,9 +335,9 @@ function WordTooltip({
         newShift = boundary.right - padding - rect.right;
       }
 
-      setShift(newShift);
+      setTimeout(() => setShift(newShift), 0);
     } else {
-      setShift(0);
+      setTimeout(() => setShift(0), 0);
     }
   }, [isVisible]);
 
@@ -419,12 +416,7 @@ export default function MushafSpreadViewer({
   const [isPending, startTransition] = useTransition();
   const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
-  const { data: session, status } = useSession();
   const { 
-    playAyah, 
-    playUrl, 
-    activeId, 
-    wordTranslations, 
     fetchWordTranslations, 
     language, 
     setLastRead,
@@ -433,7 +425,7 @@ export default function MushafSpreadViewer({
     stopAudio
   } = useAudioContext();
 
-  const [actionMenuWord, setActionMenuWord] = useState<any | null>(null);
+  const [actionMenuWord, setActionMenuWord] = useState<MushafWord | null>(null);
   const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
   const [menuShift, setMenuShift] = useState(0);
 
