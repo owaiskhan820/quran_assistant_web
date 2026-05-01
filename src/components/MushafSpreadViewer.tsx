@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState, useEffect, useLayoutEffect, useRef, useTransition, useCallback, memo } from "react";
+import { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback, memo } from "react";
 import { AnimatePresence, motion } from "framer-motion"; // still used for page-flip
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
 import { useAudioContext } from "@/context/AudioContext";
 import type { MushafLine, MushafWord } from "@/types/mushaf";
@@ -391,15 +390,43 @@ export interface MushafSpreadViewerProps {
   leftLines: MushafLine[];
 }
 
+// Helpers also needed client-side for shallow routing
+function getRightPageClient(page: number) {
+  if (page <= 1) return 1;
+  return page % 2 === 1 ? page : page - 1;
+}
+
 export default function MushafSpreadViewer({
-  requestedPage,
-  rightPage,
-  leftPage,
-  rightLines,
-  leftLines,
+  requestedPage: initialRequestedPage,
+  rightPage: initialRightPage,
+  leftPage: initialLeftPage,
+  rightLines: initialRightLines,
+  leftLines: initialLeftLines,
 }: MushafSpreadViewerProps) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  // --- SHALLOW ROUTING STATE ---
+  // Initialized from server props; updated client-side on every page turn.
+  const [mushafData, setMushafData] = useState({
+    requestedPage: initialRequestedPage,
+    rightPage: initialRightPage,
+    leftPage: initialLeftPage,
+    rightLines: initialRightLines,
+    leftLines: initialLeftLines,
+  });
+  const { requestedPage, rightPage, leftPage, rightLines, leftLines } = mushafData;
+
+  // Sync when Next.js provides fresh server props (e.g. direct URL navigation)
+  useEffect(() => {
+    setMushafData({
+      requestedPage: initialRequestedPage,
+      rightPage: initialRightPage,
+      leftPage: initialLeftPage,
+      rightLines: initialRightLines,
+      leftLines: initialLeftLines,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRequestedPage]);
+
+  const [isFetching, setIsFetching] = useState(false);
   const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
   const { 
@@ -436,6 +463,23 @@ export default function MushafSpreadViewer({
     stopAudio();
     setIsTafseerVisible(true);
   }, [stopAudio, setIsTafseerVisible]);
+
+  // Client-side page fetcher — reads static JSON files already in /public
+  const fetchPageData = useCallback(async (pageTarget: number) => {
+    const rPage = getRightPageClient(pageTarget);
+    const lPage = rPage + 1 <= 604 ? rPage + 1 : rPage;
+    setIsFetching(true);
+    try {
+      const [rLines, lLines] = await Promise.all([
+        fetch(`/data/pages/${rPage}.json`).then(r => r.json()),
+        fetch(`/data/pages/${lPage}.json`).then(r => r.json()),
+      ]);
+      setMushafData({ requestedPage: pageTarget, rightPage: rPage, leftPage: lPage, rightLines: rLines, leftLines: lLines });
+    } finally {
+      setIsFetching(false);
+      setPendingDirection(null);
+    }
+  }, []);
 
   useEffect(() => {
     if (rightPage) fetchWordTranslations(rightPage);
@@ -477,7 +521,7 @@ export default function MushafSpreadViewer({
   }, [requestedPage, rightLines, setLastRead]);
 
   const navigateToPage = useCallback((pageTarget: number) => {
-    if (isPending) return;
+    if (isFetching) return;
     if (pageTarget > 604) {
       setBoundaryFlash('end');
       setTimeout(() => setBoundaryFlash(null), 400);
@@ -489,10 +533,10 @@ export default function MushafSpreadViewer({
       return;
     }
     setPendingDirection(pageTarget > requestedPage ? 'next' : 'prev');
-    startTransition(() => {
-      router.push(`/page/${pageTarget}`);
-    });
-  }, [isPending, requestedPage, router]);
+    // Update URL without triggering a Next.js server round-trip (true shallow routing)
+    window.history.pushState({ page: pageTarget }, '', `/page/${pageTarget}`);
+    fetchPageData(pageTarget);
+  }, [isFetching, requestedPage, fetchPageData]);
 
   // Keyboard Navigation
   useEffect(() => {
@@ -503,10 +547,19 @@ export default function MushafSpreadViewer({
         navigateToPage(requestedPage - 1);
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [requestedPage, navigateToPage]);
+
+  // Browser back/forward support for history.pushState navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const match = window.location.pathname.match(/\/page\/(\d+)/);
+      if (match) fetchPageData(parseInt(match[1], 10));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [fetchPageData]);
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -514,18 +567,18 @@ export default function MushafSpreadViewer({
   const minSwipeDistance = 50;
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isPending) return;
+    if (isFetching) return;
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isPending) return;
+    if (isFetching) return;
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd || isPending) return;
+    if (!touchStart || !touchEnd || isFetching) return;
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
@@ -538,29 +591,17 @@ export default function MushafSpreadViewer({
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    // If we're already loading the next page, or wheel is locked, ignore scroll.
-    if (isWheelLocked.current || isPending) return;
-
-    const threshold = 40; // Sensitivity threshold for deltaX
+    if (isWheelLocked.current || isFetching) return;
+    const threshold = 40;
     const { deltaX, deltaY } = e;
-
-    // Detect intentional horizontal movement (deltaX > deltaY)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > threshold) {
       isWheelLocked.current = true;
-
-      // RTL Trackpad Logic:
-      // deltaX > 0: Swipe Left (Next Page)
-      // deltaX < 0: Swipe Right (Prev Page)
       if (deltaX > 0 && requestedPage < 604) {
         navigateToPage(requestedPage + 1);
       } else if (deltaX < 0 && requestedPage > 1) {
         navigateToPage(requestedPage - 1);
       }
-
-      // Lock navigation for 800ms to ensure animation completes and trackpad inertia dies down
-      setTimeout(() => {
-        isWheelLocked.current = false;
-      }, 800);
+      setTimeout(() => { isWheelLocked.current = false; }, 800);
     }
   };
 
@@ -569,8 +610,6 @@ export default function MushafSpreadViewer({
   const [prevRight, setPrevRight] = useState(rightPage);
 
   if (rightPage !== prevRight) {
-    // Advancing (turning to the left physically, but page numbers increase) -> direction 1
-    // Going back (turning to the right) -> direction -1
     setDirection(rightPage > prevRight ? 1 : -1);
     setPrevRight(rightPage);
   }
@@ -579,9 +618,6 @@ export default function MushafSpreadViewer({
     { pageNumber: rightPage, lines: rightLines },
     { pageNumber: leftPage, lines: leftLines },
   ];
-
-  // Ideally, preload next pages too, but let's stick to current
-  // In Next 13+, <Link href> already prefetches the Server Component JSON!
 
   const fontCss = useMemo(() => buildPageFontCss([rightPage, leftPage]), [rightPage, leftPage]);
   const preloadPages = [rightPage, leftPage];
@@ -635,13 +671,13 @@ export default function MushafSpreadViewer({
 
       <div className="w-full max-w-[280dvh] flex-1 flex items-center justify-center relative">
         {/* THE MOMENTUM ARROWS (Tailwind Powered) */}
-        <div className={`absolute left-4 lg:left-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isPending && pendingDirection === 'next' ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`absolute left-4 lg:left-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isFetching && pendingDirection === 'next' ? 'opacity-100' : 'opacity-0'}`}>
           <div className="animate-arrow-pulse-left bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-primary">
             <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
           </div>
         </div>
         
-        <div className={`absolute right-4 lg:right-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isPending && pendingDirection === 'prev' ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`absolute right-4 lg:right-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isFetching && pendingDirection === 'prev' ? 'opacity-100' : 'opacity-0'}`}>
           <div className="animate-arrow-pulse-right bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-primary">
             <span className="text-5xl leading-none -mr-1 mb-1 font-light">‹</span>
           </div>
@@ -654,7 +690,7 @@ export default function MushafSpreadViewer({
 
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
           <motion.section
-            key={`${rightPage}-${leftPage}`}
+            key={`spread-${rightPage}-${leftPage}`}
             custom={direction}
             variants={variants}
             initial="enter"
@@ -680,7 +716,7 @@ export default function MushafSpreadViewer({
                 style={{ backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
                 className={`relative mx-0 w-full max-w-137.5 lg:rounded-sm bg-surface shadow-[0_0_40px_rgba(var(--primary-rgb),0.16)] lg:border lg:border-primary/10 flex-col pt-3 pb-1 h-full transition-all duration-300
                   ${page.pageNumber === requestedPage ? "flex flex-1" : "hidden lg:flex flex-1"}
-                  ${isPending ? "opacity-70 blur-[1px] scale-[0.99]" : "opacity-100 scale-100"}
+                  ${isFetching ? "opacity-70 blur-[1px] scale-[0.99]" : "opacity-100 scale-100"}
                 `}
               >
                 {/* Celestial Header Slot - with backdrop blur and transparency */}
@@ -751,47 +787,31 @@ export default function MushafSpreadViewer({
       {/* Desktop Navigation */}
       <div className="hidden lg:flex pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-50 items-center justify-between w-full max-w-[1400px] mx-auto px-6 sx:px-12">
         {nextPageHref ? (
-          <Link
-            href={nextPageHref}
-            prefetch={true}
-            onClick={(e) => {
-              e.preventDefault();
-              navigateToPage(rightPage + 2);
-            }}
-            className={`pointer-events-auto rounded-2xl border backdrop-blur-md px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
-              ${isPending && pendingDirection === 'next'
+          <button
+            onClick={() => navigateToPage(rightPage + 2)}
+            className={`pointer-events-auto rounded-2xl border px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
+              ${isFetching && pendingDirection === 'next'
                 ? "bg-primary text-white border-primary scale-105 animate-pulse"
                 : "border-divider bg-surface/90 text-muted-dark hover:bg-primary hover:text-white hover:border-primary hover:scale-105"
               }`}
             aria-label="Next spread"
           >
             ‹
-          </Link>
+          </button>
         ) : <div />}
         {previousPageHref ? (
-          <Link
-            href={previousPageHref}
-            prefetch={true}
-            onClick={(e) => {
-              e.preventDefault();
-              navigateToPage(rightPage - 2);
-            }}
-            className={`pointer-events-auto rounded-2xl border backdrop-blur-md px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
-              ${isPending && pendingDirection === 'prev'
+          <button
+            onClick={() => navigateToPage(rightPage - 2)}
+            className={`pointer-events-auto rounded-2xl border px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
+              ${isFetching && pendingDirection === 'prev'
                 ? "bg-primary text-white border-primary scale-105 animate-pulse"
                 : "border-divider bg-surface/90 text-muted-dark hover:bg-primary hover:text-white hover:border-primary hover:scale-105"
               }`}
             aria-label="Previous spread"
           >
             ›
-          </Link>
+          </button>
         ) : <div />}
-      </div>
-
-      {/* Hidden Mobile Prefetch Links */}
-      <div className="hidden">
-        {requestedPage < 604 && <Link href={`/page/${requestedPage + 1}`} prefetch={true}>Next</Link>}
-        {requestedPage > 1 && <Link href={`/page/${requestedPage - 1}`} prefetch={true}>Prev</Link>}
       </div>
 
       {/* Mobile Navigation replaced by swiping logic directly on main tag */}
