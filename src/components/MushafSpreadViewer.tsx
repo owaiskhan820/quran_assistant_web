@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useLayoutEffect, useRef, useTransition, useCallback, memo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion"; // still used for page-flip
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
@@ -125,19 +125,13 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
 
   return (
     <div ref={gridRef} className="relative w-full h-full grid-container">
-      {/* 1. SKELETON UNDERLAY (Visible while loading) */}
-      <AnimatePresence>
-        {!isFontLoaded && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-0"
-          >
-            <MushafSkeleton />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 1. SKELETON UNDERLAY (CSS opacity — no JS animation) */}
+      <div
+        className={`absolute inset-0 z-0 transition-opacity duration-300 ${isFontLoaded ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        aria-hidden={isFontLoaded}
+      >
+        <MushafSkeleton />
+      </div>
 
       {/* 2. ACTUAL CONTENT (Hidden until fonts load) */}
       <div
@@ -353,45 +347,37 @@ function WordTooltip({
       onMouseLeave={() => handleToggle(false)}
       onClick={() => handleToggle(!isVisible)}
     >
-      <AnimatePresence>
-        {isVisible && (
-          <motion.div
-            ref={tooltipRef}
-            initial={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              y: 0,
-              x: `calc(-50% + ${shift}px)` 
+      {/* Tooltip — always in DOM, toggled by CSS (zero JS per hover) */}
+      <div
+        ref={tooltipRef}
+        className={`absolute ${isTop ? "bottom-full mb-3" : "top-full mt-3"} left-1/2 z-[9999] pointer-events-none
+          transition-all duration-150 ease-out
+          ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+        style={{
+          filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
+          transformOrigin: isTop ? "bottom center" : "top center",
+          transform: `translateX(calc(-50% + ${shift}px)) ${isVisible ? "translateY(0)" : isTop ? "translateY(-6px)" : "translateY(6px)"} scale(${isVisible ? 1 : 0.95})`,
+        }}
+        aria-hidden={!isVisible}
+      >
+        <div className={`bg-[#54948F] text-white px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg
+          ${language === 'ur' ? 'font-arabic text-lg pb-2' : 'text-sm'}`}>
+          {translation}
+          {/* Arrow */}
+          <div
+            className={`absolute ${isTop ? "top-full" : "bottom-full"} left-1/2 w-0 h-0 
+                      border-l-[6px] border-l-transparent 
+                      border-r-[6px] border-r-transparent 
+                      ${isTop
+                ? "border-t-[6px] border-t-[#54948F]"
+                : "border-b-[6px] border-b-[#54948F]"}`}
+            style={{ 
+              transform: `translateX(calc(-50% - ${shift}px))`,
+              left: '50%'
             }}
-            exit={{ opacity: 0, scale: 0.95, y: isTop ? -10 : 10, x: "-50%" }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`absolute ${isTop ? "bottom-full mb-3" : "top-full mt-3"} left-1/2 z-[9999] pointer-events-none`}
-            style={{
-              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
-              transformOrigin: isTop ? "bottom center" : "top center"
-            }}
-          >
-            <div className={`bg-[#54948F] text-white px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg
-              ${language === 'ur' ? 'font-arabic text-lg pb-2' : 'text-sm'}`}>
-              {translation}
-              {/* Arrow */}
-              <div
-                className={`absolute ${isTop ? "top-full" : "bottom-full"} left-1/2 w-0 h-0 
-                          border-l-[6px] border-l-transparent 
-                          border-r-[6px] border-r-transparent 
-                          ${isTop
-                    ? "border-t-[6px] border-t-[#54948F]"
-                    : "border-b-[6px] border-b-[#54948F]"}`}
-                style={{ 
-                  transform: `translateX(calc(-50% - ${shift}px))`,
-                  left: '50%'
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          />
+        </div>
+      </div>
       {children}
     </div>
   );
@@ -661,17 +647,10 @@ export default function MushafSpreadViewer({
           </div>
         </div>
 
-        {/* THE BOUNDARY FEEDBACK */}
-        <AnimatePresence>
-          {boundaryFlash && (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-[101] pointer-events-none rounded-sm border-8 border-red-500/20 bg-red-500/5 mix-blend-multiply"
-            />
-          )}
-        </AnimatePresence>
+        {/* THE BOUNDARY FEEDBACK — CSS opacity, no JS animation */}
+        <div
+          className={`absolute inset-0 z-[101] pointer-events-none rounded-sm border-8 border-red-500/20 bg-red-500/5 mix-blend-multiply transition-opacity duration-200 ${boundaryFlash ? "opacity-100" : "opacity-0"}`}
+        />
 
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
           <motion.section
