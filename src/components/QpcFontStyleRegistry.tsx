@@ -20,7 +20,12 @@ export default function QpcFontStyleRegistry({
       styleTag.id = "qpc-page-fonts";
       head.appendChild(styleTag);
     }
-    styleTag.textContent = cssText;
+    // Only append rules that aren't already registered
+    const existing = styleTag.textContent || "";
+    const newRules = cssText.split("\n").filter(rule => rule && !existing.includes(rule));
+    if (newRules.length > 0) {
+      styleTag.textContent += "\n" + newRules.join("\n");
+    }
 
     const preloadSet = new Set(preloadPages);
     const existingPreloads = Array.from(

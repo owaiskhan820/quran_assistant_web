@@ -6,6 +6,8 @@ export interface MushafWord {
   a: string;
   s: string;
   isStopSign?: boolean;
+  ur?: string;
+  en?: string;
 }
 
 export interface MushafLine {

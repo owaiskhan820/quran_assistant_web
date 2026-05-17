@@ -18,6 +18,19 @@ export interface ChaptersResponse {
   chapters: Chapter[];
 }
 
+/**
+ * Lightweight chapter record used by all client-side components.
+ * Generated from the full Chapter data via scripts/generate-tiny.mjs.
+ * ~12KB total vs ~58KB for the full Chapter[].
+ */
+export interface ChapterTiny {
+  id: number;
+  name_simple: string;
+  verses_count: number;
+  pages: number[];
+  translated_name: string;  // flattened from { name: string }
+}
+
 export interface Verse {
   id: number;
   verse_key: string;

@@ -52,7 +52,7 @@ export default function AyahActionPopup({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`bg-white border border-divider rounded-xl overflow-hidden shadow-2xl flex items-center p-1.5 gap-1.5 min-w-[200px] pointer-events-auto`}>
+            <div className={`bg-white border border-divider rounded-xl overflow-hidden shadow-2xl flex items-center p-1.5 gap-1.5 min-w-max pointer-events-auto`}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -60,7 +60,7 @@ export default function AyahActionPopup({
                   onListen();
                   onClose();
                 }}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/5 text-primary transition-colors
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/5 text-primary transition-colors whitespace-nowrap
                   ${isUrdu ? "flex-row-reverse font-arabic text-lg" : "text-sm font-semibold"}`}
               >
                 <Play size={16} fill="currentColor" />
@@ -76,7 +76,7 @@ export default function AyahActionPopup({
                   onTafseer();
                   onClose();
                 }}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/5 text-primary transition-colors
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/5 text-primary transition-colors whitespace-nowrap
                   ${isUrdu ? "flex-row-reverse font-arabic text-lg" : "text-sm font-semibold"}`}
               >
                 <BookOpen size={16} />

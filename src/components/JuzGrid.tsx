@@ -38,7 +38,7 @@ export default function JuzGrid({ juzs, juzStartPages }: JuzGridProps) {
 
           return (
             <Link
-              href={`/page/${startPage}`}
+              href={`/read?p=${startPage}`}
               key={juz.juz}
               className="group"
             >

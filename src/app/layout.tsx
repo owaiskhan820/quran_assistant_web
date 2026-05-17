@@ -7,7 +7,7 @@ import { Providers } from "@/components/Providers";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
 import "./globals.css";
-import chaptersData from "../../public/data/chapters/chapters.json";
+import chaptersTiny from "../../public/data/chapters-tiny.json";
 import juzsData from "../../public/data/juzs.json";
 
 const geistSans = Geist({
@@ -74,6 +74,7 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} ${notoSerif.variable} ${notoArabic.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <link rel="preload" href="/fonts/common/surah-name-v2.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
@@ -84,7 +85,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-white text-black" suppressHydrationWarning>
         <Providers session={session}>
           <AudioProvider>
-            <Navbar chapters={chaptersData.chapters} juzs={juzsData.juzs} />
+            <Navbar chapters={chaptersTiny} juzs={juzsData.juzs} />
             <LanguageSelectionModal />
             <OnboardingTutorial />
             {children}

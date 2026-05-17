@@ -3,7 +3,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { updateUserPreferences } from "@/actions/user";
-import chaptersData from "../../public/data/chapters/chapters.json";
+import chapters from "../../public/data/chapters-tiny.json";
+import type { ChapterTiny } from "@/types/quran";
+
+const chaptersTiny = chapters as ChapterTiny[];
 
 interface AyahId {
   surah: number;
@@ -39,8 +42,6 @@ interface AudioContextType {
   setReciter: (id: number) => void;
   stopAudio: () => void;
   activeId: string | null; // For highlighting in mushaf (e.g. "1:1")
-  wordTranslations: Record<string, string>;
-  fetchWordTranslations: (pageNumber: number) => Promise<void>;
   translationId: number;
   setTranslationId: (id: number) => void;
   translationText: string | null;
@@ -80,6 +81,28 @@ export const RECITERS: Reciter[] = [
   { id: 5, name: "Hani ar-Rifai", style: "Murattal", slug: "rifai" },
   { id: 11, name: "Mohamed al-Tablawi", style: "Murattal", slug: "tablawi" },
 ];
+
+const RECITER_AUDIO_PATHS: Record<number, string> = {
+  9:  "Minshawi/Murattal",
+  8:  "Minshawi/Mujawwad",
+  2:  "AbdulBaset/Murattal",
+  1:  "AbdulBaset/Mujawwad",
+  12: "Husary/Muallim",
+  6:  "Husary/Murattal",
+  3:  "Sudais/Murattal",
+  10: "Shuraym/Murattal",
+  4:  "Shatri/Murattal",
+  5:  "Rifai/Murattal",
+  11: "Tablawi/Murattal",
+};
+
+function buildAyahAudioUrl(surah: number, ayah: number, reciterId: number): string {
+  const path = RECITER_AUDIO_PATHS[reciterId];
+  if (!path) return "";
+  const s = String(surah).padStart(3, "0");
+  const a = String(ayah).padStart(3, "0");
+  return `https://verses.quran.com/${path}/${s}${a}.mp3`;
+}
 
 export const TRANSLATIONS: Translation[] = [
   // English
@@ -125,8 +148,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [wordTranslations, setWordTranslations] = useState<Record<string, string>>({});
   const [translationText, setTranslationText] = useState<string | null>(null);
+  const translationCache = useRef<Map<string, string>>(new Map());
   const [language, setLanguageState] = useState<'en' | 'ur'>('en');
   const [lastRead, setLastReadState] = useState<{ pageNumber: number, surahName: string } | null>(null);
   
@@ -138,8 +161,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentRepeatIndex, setCurrentRepeatIndex] = useState(0);
   const [rangeCycleIndex, setRangeCycleIndex] = useState(0);
   const [isTafseerVisible, setIsTafseerVisible] = useState(false);
-
-  const fetchedPages = useRef<Set<number>>(new Set());
 
   // Initial Load Logic
   useEffect(() => {
@@ -271,7 +292,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           } else {
             const nextAyah = current.ayah + 1;
-            const chapter = chaptersData.chapters.find(c => c.id === current.surah);
+            const chapter = chaptersTiny.find(c => c.id === current.surah);
             if (chapter && nextAyah <= chapter.verses_count && nextAyah <= range.end.ayah) {
               playAyahRef.current?.(current.surah, nextAyah, true, undefined, true);
               return;
@@ -297,7 +318,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       if (isAutoplayRef.current) {
-        const chapter = chaptersData.chapters.find(c => c.id === current.surah);
+        const chapter = chaptersTiny.find(c => c.id === current.surah);
         if (chapter) {
           let nextSurah = current.surah;
           let nextAyah = current.ayah + 1;
@@ -352,49 +373,33 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const targetReciterId = overrideReciterId || reciterId;
     const ayahKey = `${surah}:${ayah}`;
+
+    // Build URL locally — zero network request, instant
+    const url = buildAyahAudioUrl(surah, ayah, targetReciterId);
+    if (!url) return;
+
+    // Batch all state updates together
     setCurrentAyah({ surah, ayah });
     setActiveId(ayahKey);
     setIsTafseerVisible(false);
-    
     if (!isInternal) {
       setCurrentRepeatIndex(0);
       setRangeCycleIndex(0);
     }
 
-    try {
-      const res = await fetch(`https://api.quran.com/api/v4/verses/by_key/${ayahKey}?audio=${targetReciterId}`);
-      const data = await res.json();
-      const relativeUrl = data.verse?.audio?.url;
+    // Set src and play — no .load() call needed
+    if (ayahAudioRef.current.src !== url) {
+      ayahAudioRef.current.src = url;
+    }
+    ayahAudioRef.current.currentTime = 0;
 
-      if (!relativeUrl) throw new Error("Audio URL not found");
-
-      const url = relativeUrl.startsWith("http")
-        ? relativeUrl
-        : relativeUrl.startsWith("//")
-          ? `https:${relativeUrl}`
-          : `https://audio.qurancdn.com/${relativeUrl}`;
-
-      if (ayahAudioRef.current.src !== url) {
-        ayahAudioRef.current.src = url;
-        ayahAudioRef.current.load();
-      }
-
-      ayahAudioRef.current.currentTime = 0;
-
-      if (shouldPlay) {
-        const playPromise = ayahAudioRef.current.play();
-        playPromiseRef.current = playPromise;
-
-        playPromise.catch(err => {
-          if (err.name !== "AbortError") {
-            console.error("Playback failed:", err);
-          }
-        });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (err) {
-      console.error("Failed to fetch ayah audio:", err);
+    if (shouldPlay) {
+      const playPromise = ayahAudioRef.current.play();
+      playPromiseRef.current = playPromise;
+      playPromise.catch(err => {
+        if (err.name !== "AbortError") console.error("Playback failed:", err);
+      });
+    } else {
       setIsPlaying(false);
     }
   }, [reciterId]);
@@ -428,7 +433,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const playNextAyah = useCallback(() => {
     if (!currentAyah) return;
-    const chapter = chaptersData.chapters.find(c => c.id === currentAyah.surah);
+    const chapter = chaptersTiny.find(c => c.id === currentAyah.surah);
     if (!chapter) return;
     let nextSurah = currentAyah.surah;
     let nextAyah = currentAyah.ayah + 1;
@@ -454,7 +459,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
          return;
       }
       prevSurah -= 1;
-      const prevChapter = chaptersData.chapters.find(c => c.id === prevSurah);
+      const prevChapter = chaptersTiny.find(c => c.id === prevSurah);
       prevAyah = prevChapter ? prevChapter.verses_count : 1;
     }
     playAyah(prevSurah, prevAyah, true);
@@ -525,9 +530,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const defaultTranslationId = lang === 'ur' ? 158 : 20;
     setTranslationId(defaultTranslationId);
     syncPreferences({ preferred_translation: defaultTranslationId });
-    
-    setWordTranslations({});
-    fetchedPages.current.clear();
   }, [syncPreferences]);
 
   const setReciter = useCallback((id: number) => {
@@ -544,35 +546,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [syncPreferences]);
 
 
-  const fetchWordTranslations = useCallback(async (pageNumber: number) => {
-    if (fetchedPages.current.has(pageNumber)) return;
-    try {
-      const res = await fetch(`https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=translation&language=${language}`);
-      const data = await res.json();
-        if (data.verses) {
-          const newTranslations: Record<string, string> = {};
-          data.verses.forEach((verse: { verse_key: string; words: { position: number; translation?: { text: string } }[] }) => {
-            verse.words.forEach((word: { position: number; translation?: { text: string } }) => {
-              if (word.translation && word.translation.text) {
-              const location = `${verse.verse_key}:${word.position}`;
-              newTranslations[location] = word.translation.text;
-            }
-          });
-        });
-        setWordTranslations((prev) => ({ ...prev, ...newTranslations }));
-        fetchedPages.current.add(pageNumber);
-      }
-    } catch (err) {
-      console.error(`Failed to fetch word translations for page ${pageNumber}:`, err);
-    }
-  }, [language]);
-
   const fetchAyahTranslation = useCallback(async (surah: number, ayah: number, tId: number) => {
+    const key = `${surah}:${ayah}:${tId}`;
+
+    // Instant cache hit
+    if (translationCache.current.has(key)) {
+      setTranslationText(translationCache.current.get(key)!);
+      return;
+    }
+
     try {
       const res = await fetch(`https://api.quran.com/api/v4/quran/translations/${tId}?verse_key=${surah}:${ayah}`);
       const data = await res.json();
       if (data.translations && data.translations.length > 0) {
         const text = data.translations[0].text.replace(/<[^>]*>?/gm, '');
+        translationCache.current.set(key, text);
         setTranslationText(text);
       }
     } catch (err) {
@@ -615,8 +603,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setReciter,
         stopAudio,
         activeId,
-        wordTranslations,
-        fetchWordTranslations,
         translationId,
         setTranslationId: handleSetTranslationId,
         translationText,

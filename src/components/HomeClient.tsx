@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { useAudioContext } from "@/context/AudioContext";
 import Link from "next/link";
-import { Chapter, Juz } from "@/types/quran";
+import { ChapterTiny, Juz } from "@/types/quran";
 import SearchIcon from "@/components/icons/SearchIcon";
 import FilterMenu from "@/components/FilterMenu";
 import Footer from "@/components/Footer";
 import JuzGrid from "@/components/JuzGrid";
 
 interface HomeClientProps {
-  chapters: Chapter[];
-  alKahf: Chapter | undefined;
+  chapters: ChapterTiny[];
+  alKahf: ChapterTiny | undefined;
   juzs: Juz[];
 }
 
@@ -103,7 +103,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                         if (!surah) return null;
                         return (
                           <Link
-                            href={`/page/${surah.pages[0]}`}
+                            href={`/read?p=${surah.pages[0]}`}
                             className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
                           >
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -119,7 +119,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
 
                       {searchNumber >= 1 && searchNumber <= 30 && (
                         <Link
-                          href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
+                          href={`/read?p=${JUZ_START_PAGES[searchNumber - 1]}`}
                           className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
                         >
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -134,7 +134,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
 
                       {searchNumber >= 1 && searchNumber <= 604 && (
                         <Link
-                          href={`/page/${searchNumber}`}
+                          href={`/read?p=${searchNumber}`}
                           className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
                         >
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -161,7 +161,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                       {textMatches.map(surah => (
                         <Link
                           key={surah.id}
-                          href={`/page/${surah.pages[0]}`}
+                          href={`/read?p=${surah.pages[0]}`}
                           className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/5 transition-colors group"
                         >
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -188,7 +188,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
 
         {/* Hero Banner - Dynamic for Continue Reading / Start Reading */}
         <section className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
-          <Link href={lastRead ? `/page/${lastRead.pageNumber}` : "/page/1"}>
+          <Link href={lastRead ? `/read?p=${lastRead.pageNumber}` : "/read?p=1"}>
             <div 
               className="relative overflow-hidden rounded-2xl p-6 md:p-12 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-500 bg-cover bg-center cursor-pointer group"
               style={{
@@ -242,7 +242,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayedChapters.map((chapter) => (
               <Link 
-                href={`/page/${chapter.pages[0]}`} 
+                href={`/read?p=${chapter.pages[0]}`} 
                 key={chapter.id}
                 className="group"
               >
@@ -260,7 +260,7 @@ export default function HomeClient({ chapters, alKahf, juzs }: HomeClientProps) 
                       {chapter.name_simple}
                     </h3>
                     <p className="text-sm text-muted font-medium uppercase tracking-wide">
-                      {chapter.translated_name.name}
+                      {chapter.translated_name}
                     </p>
                   </div>
 

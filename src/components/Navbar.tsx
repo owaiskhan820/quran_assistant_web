@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Chapter, Juz } from "@/types/quran";
+import { ChapterTiny, Juz } from "@/types/quran";
 import SideNavMenu from "./SideNavMenu";
 
 interface NavbarProps {
-  chapters: Chapter[];
+  chapters: ChapterTiny[];
   juzs: Juz[];
 }
 
@@ -16,7 +17,7 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
   const { data: session } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isMushafPage = pathname?.startsWith("/page/");
+  const isMushafPage = pathname === "/read";
 
   useEffect(() => {
     const handleOpenMenu = () => setIsMenuOpen(true);
@@ -51,8 +52,15 @@ export default function Navbar({ chapters, juzs }: NavbarProps) {
             
             <Link
               href="/"
-              className="text-xl font-bold tracking-tight text-primary font-sans"
+              className="flex items-center gap-2 text-xl font-bold tracking-tight text-primary font-sans"
             >
+              <Image 
+                src="/icons/logo.png" 
+                alt="Quran Library Logo" 
+                width={32} 
+                height={32} 
+                className="rounded-lg shadow-sm"
+              />
               Quran Library
             </Link>
           </div>

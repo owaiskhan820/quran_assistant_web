@@ -10,56 +10,72 @@
         "l": "16:88:1",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "وہ لوگ",
+        "en": "And those who"
       },
       {
         "c": "ﱂ",
         "l": "16:88:2",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جنہوں نے کفر کیا",
+        "en": "disbelieved"
       },
       {
         "c": "ﱃ",
         "l": "16:88:3",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور روکا",
+        "en": "and hindered"
       },
       {
         "c": "ﱄ",
         "l": "16:88:4",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "سے",
+        "en": "from"
       },
       {
         "c": "ﱅ",
         "l": "16:88:5",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "راستے سے",
+        "en": "(the) way"
       },
       {
         "c": "ﱆ",
         "l": "16:88:6",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ کے",
+        "en": "(of) Allah"
       },
       {
         "c": "ﱇ",
         "l": "16:88:7",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "زیادہ دیں گے ہم انہیں",
+        "en": "We will increase them"
       },
       {
         "c": "ﱈ",
         "l": "16:88:8",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "عذاب",
+        "en": "(in) punishment"
       }
     ]
   },
@@ -74,63 +90,81 @@
         "l": "16:88:9",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اوپر",
+        "en": "over"
       },
       {
         "c": "ﱊ",
         "l": "16:88:10",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "عذاب کے",
+        "en": "punishment"
       },
       {
         "c": "ﱋ",
         "l": "16:88:11",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بوجہ اس کے جو",
+        "en": "because"
       },
       {
         "c": "ﱌ",
         "l": "16:88:12",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تھے وہ",
+        "en": "they used (to)"
       },
       {
         "c": "ﱍ",
         "l": "16:88:13",
         "a": "88",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "وہ فساد کرتے",
+        "en": "spread corruption"
       },
       {
         "c": "ﱎ",
         "l": "16:88:14",
         "a": "88",
         "s": "16",
-        "isStopSign": true
+        "isStopSign": true,
+        "ur": "(۸۸)",
+        "en": "(88)"
       },
       {
         "c": "ﱏ",
         "l": "16:89:1",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور جس دن",
+        "en": "And the Day"
       },
       {
         "c": "ﱐ",
         "l": "16:89:2",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ہم اٹھائیں گے",
+        "en": "We will resurrect"
       },
       {
         "c": "ﱑ",
         "l": "16:89:3",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "میں",
+        "en": "among"
       }
     ]
   },
@@ -145,56 +179,72 @@
         "l": "16:89:4",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ہر",
+        "en": "every"
       },
       {
         "c": "ﱓ",
         "l": "16:89:5",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "امت میں",
+        "en": "nation"
       },
       {
         "c": "ﱔ",
         "l": "16:89:6",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ایک گواہ",
+        "en": "a witness"
       },
       {
         "c": "ﱕ",
         "l": "16:89:7",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ان پر",
+        "en": "over them"
       },
       {
         "c": "ﱖ",
         "l": "16:89:8",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "کے",
+        "en": "from"
       },
       {
         "c": "ﱗﱘ",
         "l": "16:89:9",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ان کے نفسوں میں سے",
+        "en": "themselves"
       },
       {
         "c": "ﱙ",
         "l": "16:89:10",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور ہم لائیں گے",
+        "en": "And We (will) bring"
       },
       {
         "c": "ﱚ",
         "l": "16:89:11",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "آپ کو",
+        "en": "you"
       }
     ]
   },
@@ -209,56 +259,72 @@
         "l": "16:89:12",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "گواہ",
+        "en": "(as) a witness"
       },
       {
         "c": "ﱜ",
         "l": "16:89:13",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "پر",
+        "en": "over"
       },
       {
         "c": "ﱝﱞ",
         "l": "16:89:14",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ان لوگوں (پر)",
+        "en": "these"
       },
       {
         "c": "ﱟ",
         "l": "16:89:15",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور نازل کی ہم نے",
+        "en": "And We sent down"
       },
       {
         "c": "ﱠ",
         "l": "16:89:16",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "آپ پر",
+        "en": "to you"
       },
       {
         "c": "ﱡ",
         "l": "16:89:17",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "کتاب",
+        "en": "the Book"
       },
       {
         "c": "ﱢ",
         "l": "16:89:18",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "کھول کر بیان کرنے والی",
+        "en": "(as) a clarification"
       },
       {
         "c": "ﱣ",
         "l": "16:89:19",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "واسطے ہر",
+        "en": "of every"
       }
     ]
   },
@@ -273,56 +339,72 @@
         "l": "16:89:20",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "چیز کے",
+        "en": "thing"
       },
       {
         "c": "ﱥ",
         "l": "16:89:21",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور ہدایت",
+        "en": "and a guidance"
       },
       {
         "c": "ﱦ",
         "l": "16:89:22",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور رحمت",
+        "en": "and mercy"
       },
       {
         "c": "ﱧ",
         "l": "16:89:23",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور خوشخبری",
+        "en": "and glad tidings"
       },
       {
         "c": "ﱨ",
         "l": "16:89:24",
         "a": "89",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "مسلمانوں کے لیے",
+        "en": "for the Muslims"
       },
       {
         "c": "ﱩ",
         "l": "16:89:25",
         "a": "89",
         "s": "16",
-        "isStopSign": true
+        "isStopSign": true,
+        "ur": "(۸۹)",
+        "en": "(89)"
       },
       {
         "c": "ﱪﱫ",
         "l": "16:90:1",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بیشک",
+        "en": "Indeed"
       },
       {
         "c": "ﱬ",
         "l": "16:90:2",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ تعالیٰ",
+        "en": "Allah"
       }
     ]
   },
@@ -337,56 +419,72 @@
         "l": "16:90:3",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "حکم دیتا ہے",
+        "en": "commands"
       },
       {
         "c": "ﱮ",
         "l": "16:90:4",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "انصاف کا۔ عدل کا",
+        "en": "justice"
       },
       {
         "c": "ﱯ",
         "l": "16:90:5",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور احسان کا",
+        "en": "and the good"
       },
       {
         "c": "ﱰ",
         "l": "16:90:6",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور دینے کا",
+        "en": "and giving"
       },
       {
         "c": "ﱱ",
         "l": "16:90:7",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "والے",
+        "en": "(to) relatives"
       },
       {
         "c": "ﱲ",
         "l": "16:90:8",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "قرابت (رشتہ داروں کو)",
+        "en": "(to) relatives"
       },
       {
         "c": "ﱳ",
         "l": "16:90:9",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور روکتا ہے۔ منع کرتا ہے",
+        "en": "and forbids"
       },
       {
         "c": "ﱴ",
         "l": "16:90:10",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "سے",
+        "en": "[from]"
       }
     ]
   },
@@ -401,42 +499,54 @@
         "l": "16:90:11",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بےحیائی سے",
+        "en": "the immorality"
       },
       {
         "c": "ﱶ",
         "l": "16:90:12",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور برائی سے",
+        "en": "and the bad"
       },
       {
         "c": "ﱷﱸ",
         "l": "16:90:13",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور زیادتی سے",
+        "en": "and the oppression"
       },
       {
         "c": "ﱹ",
         "l": "16:90:14",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "وہ نصیحت کرتا ہے تم کو",
+        "en": "He admonishes you"
       },
       {
         "c": "ﱺ",
         "l": "16:90:15",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تاکہ تم",
+        "en": "so that you may"
       },
       {
         "c": "ﱻ",
         "l": "16:90:16",
         "a": "90",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم نصیحت پکڑو",
+        "en": "take heed"
       }
     ]
   },
@@ -451,63 +561,81 @@
         "l": "16:90:17",
         "a": "90",
         "s": "16",
-        "isStopSign": true
+        "isStopSign": true,
+        "ur": "(۹۰)",
+        "en": "(90)"
       },
       {
         "c": "ﱽ",
         "l": "16:91:1",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور پورا کرو",
+        "en": "And fulfil"
       },
       {
         "c": "ﱾ",
         "l": "16:91:2",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "عہد کو",
+        "en": "the covenant"
       },
       {
         "c": "ﱿ",
         "l": "16:91:3",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ کے",
+        "en": "(of) Allah"
       },
       {
         "c": "ﲀ",
         "l": "16:91:4",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جب",
+        "en": "when"
       },
       {
         "c": "ﲁ",
         "l": "16:91:5",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "عہد کرو تم",
+        "en": "you have taken a covenant"
       },
       {
         "c": "ﲂ",
         "l": "16:91:6",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور نہ",
+        "en": "and (do) not"
       },
       {
         "c": "ﲃ",
         "l": "16:91:7",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم توڑو",
+        "en": "break"
       },
       {
         "c": "ﲄ",
         "l": "16:91:8",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "قسموں کو",
+        "en": "oaths"
       }
     ]
   },
@@ -522,56 +650,72 @@
         "l": "16:91:9",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بعد",
+        "en": "after"
       },
       {
         "c": "ﲆ",
         "l": "16:91:10",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ان کو  پکا کرنے کے",
+        "en": "their confirmation"
       },
       {
         "c": "ﲇ",
         "l": "16:91:11",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "حالانکہ تحقیق",
+        "en": "while verily"
       },
       {
         "c": "ﲈ",
         "l": "16:91:12",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بنا لیا تم نے",
+        "en": "you have made"
       },
       {
         "c": "ﲉ",
         "l": "16:91:13",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ کو",
+        "en": "Allah"
       },
       {
         "c": "ﲊ",
         "l": "16:91:14",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اپنے اوپر",
+        "en": "over you"
       },
       {
         "c": "ﲋﲌ",
         "l": "16:91:15",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ضامن۔ ذمہ دار",
+        "en": "a surety"
       },
       {
         "c": "ﲍ",
         "l": "16:91:16",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بیشک",
+        "en": "Indeed"
       }
     ]
   },
@@ -586,63 +730,81 @@
         "l": "16:91:17",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ تعالیٰ",
+        "en": "Allah"
       },
       {
         "c": "ﲏ",
         "l": "16:91:18",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "وہ جانتا ہے",
+        "en": "knows"
       },
       {
         "c": "ﲐ",
         "l": "16:91:19",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جو",
+        "en": "what"
       },
       {
         "c": "ﲑ",
         "l": "16:91:20",
         "a": "91",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم کرتے ہو",
+        "en": "you do"
       },
       {
         "c": "ﲒ",
         "l": "16:91:21",
         "a": "91",
         "s": "16",
-        "isStopSign": true
+        "isStopSign": true,
+        "ur": "(۹۱)",
+        "en": "(91)"
       },
       {
         "c": "ﲓ",
         "l": "16:92:1",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور نہ",
+        "en": "And (do) not"
       },
       {
         "c": "ﲔ",
         "l": "16:92:2",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم ہوجاؤ",
+        "en": "be"
       },
       {
         "c": "ﲕ",
         "l": "16:92:3",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اس عورت کی طرح",
+        "en": "like her who"
       },
       {
         "c": "ﲖ",
         "l": "16:92:4",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جس نے توڑ ڈالا",
+        "en": "untwists"
       }
     ]
   },
@@ -657,56 +819,72 @@
         "l": "16:92:5",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اپنا سوت",
+        "en": "her spun yarn"
       },
       {
         "c": "ﲘ",
         "l": "16:92:6",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "کے",
+        "en": "after"
       },
       {
         "c": "ﲙ",
         "l": "16:92:7",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بعد",
+        "en": "after"
       },
       {
         "c": "ﲚ",
         "l": "16:92:8",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "پکا کرنے ۔ مضبوطی کے بعد",
+        "en": "strength"
       },
       {
         "c": "ﲛ",
         "l": "16:92:9",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ٹکڑے ٹکڑے کرنا۔ ریزہ ریزہ کرنا",
+        "en": "(into) untwisted strands"
       },
       {
         "c": "ﲜ",
         "l": "16:92:10",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم بنا لیتے ہو",
+        "en": "you take"
       },
       {
         "c": "ﲝ",
         "l": "16:92:11",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اپنی قسموں کو",
+        "en": "your oaths"
       },
       {
         "c": "ﲞ",
         "l": "16:92:12",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بہانہ",
+        "en": "(as) a deception"
       }
     ]
   },
@@ -721,77 +899,99 @@
         "l": "16:92:13",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "آپس میں",
+        "en": "between you"
       },
       {
         "c": "ﲠ",
         "l": "16:92:14",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "کہ",
+        "en": "because"
       },
       {
         "c": "ﲡ",
         "l": "16:92:15",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ہو",
+        "en": "is"
       },
       {
         "c": "ﲢ",
         "l": "16:92:16",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ایک گروہ۔ ایک امت",
+        "en": "a community"
       },
       {
         "c": "ﲣ",
         "l": "16:92:17",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "وہ",
+        "en": "[it]"
       },
       {
         "c": "ﲤ",
         "l": "16:92:18",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بڑھی ہوئی۔ زیادہ فائدہ والی",
+        "en": "more numerous"
       },
       {
         "c": "ﲥ",
         "l": "16:92:19",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "سے",
+        "en": "than"
       },
       {
         "c": "ﲦﲧ",
         "l": "16:92:20",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "دوسرے گروہ سے",
+        "en": "(another) community"
       },
       {
         "c": "ﲨ",
         "l": "16:92:21",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "بیشک",
+        "en": "Only"
       },
       {
         "c": "ﲩ",
         "l": "16:92:22",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "آزماتا ہے تم کو",
+        "en": "Allah tests you"
       },
       {
         "c": "ﲪ",
         "l": "16:92:23",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ",
+        "en": "Allah tests you"
       }
     ]
   },
@@ -806,63 +1006,81 @@
         "l": "16:92:24",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ساتھ اس کے",
+        "en": "by it"
       },
       {
         "c": "ﲭ",
         "l": "16:92:25",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور البتہ ضرور بیان کرے گا",
+        "en": "And He will make clear"
       },
       {
         "c": "ﲮ",
         "l": "16:92:26",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تمہارے لیے",
+        "en": "to you"
       },
       {
         "c": "ﲯ",
         "l": "16:92:27",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "دن",
+        "en": "(on) the Day"
       },
       {
         "c": "ﲰ",
         "l": "16:92:28",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "قیامت کے",
+        "en": "(of) the Resurrection"
       },
       {
         "c": "ﲱ",
         "l": "16:92:29",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جو",
+        "en": "what"
       },
       {
         "c": "ﲲ",
         "l": "16:92:30",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تھے تم",
+        "en": "you used (to)"
       },
       {
         "c": "ﲳ",
         "l": "16:92:31",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اس میں",
+        "en": "in it"
       },
       {
         "c": "ﲴ",
         "l": "16:92:32",
         "a": "92",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم اختلاف کرتے",
+        "en": "differ"
       }
     ]
   },
@@ -877,70 +1095,90 @@
         "l": "16:92:33",
         "a": "92",
         "s": "16",
-        "isStopSign": true
+        "isStopSign": true,
+        "ur": "(۹۲)",
+        "en": "(92)"
       },
       {
         "c": "ﲶ",
         "l": "16:93:1",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور اگر",
+        "en": "And if"
       },
       {
         "c": "ﲷ",
         "l": "16:93:2",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "چاہتا",
+        "en": "Allah (had) willed"
       },
       {
         "c": "ﲸ",
         "l": "16:93:3",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اللہ",
+        "en": "Allah (had) willed"
       },
       {
         "c": "ﲹ",
         "l": "16:93:4",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "البتہ بنا دیتا تم کو",
+        "en": "surely He (could) have made you"
       },
       {
         "c": "ﲺ",
         "l": "16:93:5",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "امت",
+        "en": "a nation"
       },
       {
         "c": "ﲻ",
         "l": "16:93:6",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "ایک",
+        "en": "one"
       },
       {
         "c": "ﲼ",
         "l": "16:93:7",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "لیکن",
+        "en": "but"
       },
       {
         "c": "ﲽ",
         "l": "16:93:8",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "وہ گمراہ کرتا ہے",
+        "en": "He lets go astray"
       },
       {
         "c": "ﲾ",
         "l": "16:93:9",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جس کو",
+        "en": "whom"
       }
     ]
   },
@@ -955,63 +1193,81 @@
         "l": "16:93:10",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "چاہتا ہے",
+        "en": "He wills"
       },
       {
         "c": "ﳀ",
         "l": "16:93:11",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور ہدایت دیتا ہے",
+        "en": "and guides"
       },
       {
         "c": "ﳁ",
         "l": "16:93:12",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "جس کو",
+        "en": "whom"
       },
       {
         "c": "ﳂﳃ",
         "l": "16:93:13",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "چاہتا ہے",
+        "en": "He wills"
       },
       {
         "c": "ﳄ",
         "l": "16:93:14",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اور البتہ تم ضرور سوال کیے جاؤ گے",
+        "en": "And surely you will be questioned"
       },
       {
         "c": "ﳅ",
         "l": "16:93:15",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "اس چیز کے بارے میں جو",
+        "en": "about what"
       },
       {
         "c": "ﳆ",
         "l": "16:93:16",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تھے تم",
+        "en": "you used (to)"
       },
       {
         "c": "ﳇ",
         "l": "16:93:17",
         "a": "93",
         "s": "16",
-        "isStopSign": false
+        "isStopSign": false,
+        "ur": "تم عمل کرتے",
+        "en": "do"
       },
       {
         "c": "ﳈ",
         "l": "16:93:18",
         "a": "93",
         "s": "16",
-        "isStopSign": true
+        "isStopSign": true,
+        "ur": "(۹۳)",
+        "en": "(93)"
       }
     ]
   }

@@ -1,17 +1,25 @@
 "use client";
 
 import { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback, memo } from "react";
-import { AnimatePresence, motion } from "framer-motion"; // still used for page-flip
-import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
 import { useAudioContext } from "@/context/AudioContext";
 import type { MushafLine, MushafWord } from "@/types/mushaf";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import MushafSkeleton from "@/components/MushafSkeleton";
 import { getJuzForPage } from "@/utils/juz";
 import { getSurahNameArabic, getSurahForPage } from "@/utils/surah";
-import MushafSkeleton from "@/components/MushafSkeleton";
-import chaptersData from "../../public/data/chapters/chapters.json";
+import chapters from "../../public/data/chapters-tiny.json";
+import type { ChapterTiny } from "@/types/quran";
+import pageStarts from "../../public/data/page-starts.json";
 import AyahActionPopup from "./quran/AyahActionPopup";
 import AyahTafseerDrawer from "./quran/AyahTafseerDrawer";
+
+const chaptersTiny = chapters as ChapterTiny[];
+
+const toArabicDigits = (num: number) => {
+  return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
+};
 
 function buildPageFontCss(pageNumbers: number[]): string {
   const uniquePages = [...new Set(pageNumbers)].sort((a, b) => a - b);
@@ -22,16 +30,12 @@ function buildPageFontCss(pageNumbers: number[]): string {
   const pageFonts = uniquePages
     .map(
       (page) =>
-        `@font-face{font-family:'p${page}';src:url('/fonts/qpc/p${page}.woff2') format('woff2');font-display:block;}`,
+        `@font-face{font-family:'p${page}';src:url('/fonts/qpc/p${page}.woff2') format('woff2');font-display:swap;}`,
     )
     .join("\n");
 
   return `${specialFonts}\n${pageFonts}`;
 }
-
-const toArabicDigits = (num: number) => {
-  return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
-};
 
 function getWordAudioUrl(location: string): string | null {
   if (!location) return null;
@@ -41,32 +45,80 @@ function getWordAudioUrl(location: string): string | null {
   return `https://audio.qurancdn.com/wbw/${s}_${a}_${w}.mp3`;
 }
 
+function SharedTooltip({
+  word,
+  lineIdx,
+  language,
+  onDismiss,
+}: {
+  word: MushafWord;
+  lineIdx: number;
+  language: 'en' | 'ur';
+  onDismiss: () => void;
+}) {
+  const translation = language === 'ur' ? word.ur : word.en;
+  if (!translation) return null;
+  const isTop = lineIdx > 0;
+
+  return (
+    <div
+      className={`absolute left-1/2 -translate-x-1/2 z-[9999] pointer-events-auto
+        ${isTop ? "top-0 -translate-y-full pb-2" : "bottom-0 translate-y-full pt-2"}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className={`bg-[#54948F] text-white px-3 py-1.5 rounded-md
+        whitespace-nowrap font-medium shadow-lg relative
+        ${language === 'ur' ? 'font-arabic text-lg pb-2' : 'text-sm'}`}>
+        {translation}
+        <div className={`absolute left-1/2 -translate-x-1/2 w-0 h-0
+          border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent
+          ${isTop
+            ? "top-full border-t-[6px] border-t-[#54948F]"
+            : "bottom-full border-b-[6px] border-b-[#54948F]"
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
 const FifteenLineGrid = memo(function FifteenLineGrid({
   pageNumber,
   lines,
   onOpenTafseer,
-  actionMenuWord,
-  setActionMenuWord,
-  menuPosition,
-  setMenuPosition,
-  menuShift,
-  setMenuShift,
 }: {
   pageNumber: number;
   lines: MushafLine[];
   onOpenTafseer: (surah: number, ayah: number, arabicWords: string[], pageNumber: number) => void;
-  actionMenuWord: MushafWord | null;
-  setActionMenuWord: (word: MushafWord | null) => void;
-  menuPosition: "top" | "bottom";
-  setMenuPosition: (pos: "top" | "bottom") => void;
-  menuShift: number;
-  setMenuShift: (shift: number) => void;
 }) {
-  const { playAyah, playUrl, activeId, wordTranslations, language } = useAudioContext();
-  const [isFontLoaded, setIsFontLoaded] = useState(false);
+  const { playAyah, playUrl, activeId, language } = useAudioContext();
+  const [actionMenuWord, setActionMenuWord] = useState<MushafWord | null>(null);
+  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
+  const [menuShift, setMenuShift] = useState(0);
 
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const [activeTooltip, setActiveTooltip] = useState<{
+    word: MushafWord;
+    lineIdx: number;
+  } | null>(null);
+  const tooltipDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setActiveTooltip(null);
+  }, [pageNumber]);
+
+  useEffect(() => {
+    if (!activeTooltip) return;
+    if (tooltipDismissTimer.current) clearTimeout(tooltipDismissTimer.current);
+    tooltipDismissTimer.current = setTimeout(() => {
+      setActiveTooltip(null);
+    }, 2000);
+    return () => {
+      if (tooltipDismissTimer.current) clearTimeout(tooltipDismissTimer.current);
+    };
+  }, [activeTooltip]);
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
@@ -75,38 +127,26 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
       const gridRect = gridRef.current.getBoundingClientRect();
       const padding = 32;
       let newShift = 0;
-      const menuWidth = 200; // Expected min-width of popup
+      const menuWidth = 200;
 
       if (rect.left - menuWidth/2 < gridRect.left + padding) {
         newShift = (gridRect.left + padding) - (rect.left - menuWidth/2);
       } else if (rect.right + menuWidth/2 > gridRect.right - padding) {
         newShift = (gridRect.right - padding) - (rect.right + menuWidth/2);
       }
-      setMenuShift(newShift);
+      requestAnimationFrame(() => setMenuShift(newShift));
     }
   }, [actionMenuWord, setMenuShift]);
 
   useEffect(() => {
-    setTimeout(() => setIsFontLoaded(false), 0);
-    const fontName = `p${pageNumber}`;
-    
-    // Safety check with document.fonts
-    document.fonts.load(`1em ${fontName}`).then(() => {
-      // Small delay to ensure browser layout engine settles
-      setTimeout(() => setIsFontLoaded(true), 50);
-    }).catch(() => {
-      // Fallback for unexpected failures
-      setTimeout(() => setIsFontLoaded(true), 2500);
-    });
-  }, [pageNumber]);
+    requestAnimationFrame(() => setActionMenuWord(null));
+  }, [pageNumber, setActionMenuWord]);
 
   function Basmalah() {
     return (
       <div className="flex w-full h-full items-center justify-center text-black">
         <span
-          className="leading-none
-                    text-[clamp(1.2rem,5vw,1.5rem)]   /* Mobile-Default */
-                    lg:text-[1.5em]"                 /* Desktop-Canonical */
+          className="leading-none text-[clamp(1.2rem,5vw,1.5rem)] lg:text-[1.5em]"
           style={{
             fontFamily: "QuranCommon",
             fontVariantLigatures: "common-ligatures",
@@ -120,46 +160,36 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   }
 
   const linesToRender = lines.slice(0, 15);
-  const isShortPage = linesToRender.length < 15;
 
   return (
-    <div ref={gridRef} className="relative w-full h-full grid-container">
-      {/* 1. SKELETON UNDERLAY (CSS opacity — no JS animation) */}
-      <div
-        className={`absolute inset-0 z-0 transition-opacity duration-300 ${isFontLoaded ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-        aria-hidden={isFontLoaded}
-      >
+    <div
+      ref={gridRef}
+      className="relative w-full h-full grid-container"
+      onTouchStart={() => setActiveTooltip(null)}
+      onClick={() => setActiveTooltip(null)}
+    >
+      <div className={`absolute inset-0 z-0 hidden`} aria-hidden="true">
         <MushafSkeleton />
       </div>
 
-      {/* 2. ACTUAL CONTENT (Hidden until fonts load) */}
       <div
         dir="rtl"
-        className={`${isShortPage
-          ? "flex flex-col justify-center h-full w-full gap-5 py-12"
-          : "grid h-full w-full grid-rows-[15]"
-          } transition-opacity duration-300 ${isFontLoaded ? "opacity-100" : "opacity-0"}`}
-        style={{ 
+        className="grid h-full w-full"
+        style={{
           fontFamily: `p${pageNumber}`,
-          gridTemplateRows: isShortPage ? undefined : "repeat(15, minmax(0, 1fr))"
+          gridTemplateRows: "repeat(15, minmax(0, 1fr))"
         }}
       >
       {linesToRender.map((line, lineIdx) => (
         <div
-          key={line.line}
+          key={`line-${pageNumber}-${line.line}`}
           className="flex min-w-0 flex-row items-center px-0 lg:px-4"
-          style={{
-            direction: "rtl",
-            justifyContent: line.is_centered ? "center" : "space-between",
-            fontFamily: `p${pageNumber}`,
-          }}
+          style={{ justifyContent: line.is_centered ? "center" : "space-between" }}
         >
           {line.type === "surah_name" ? (
             <div className="relative flex w-full h-full items-center justify-center text-secondary">
               <span
-                className="block text-center leading-none opacity-90 
-                          text-[clamp(1.5rem,8vw,2.5rem)]  /* Mobile-Default */
-                          lg:text-[clamp(2.4rem,7vw,2.7rem)]"    /* Desktop-Canonical */
+                className="block text-center leading-none opacity-90 text-[clamp(1.5rem,8vw,2.5rem)] lg:text-[clamp(2.4rem,7vw,2.7rem)]"
                 style={{
                   fontFamily: "QuranCommon",
                   fontVariantLigatures: "common-ligatures",
@@ -169,9 +199,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
                 header
               </span>
               <span
-                className="absolute leading-none 
-                          text-[clamp(1.1rem,7vw,2.1rem)]    /* Mobile-Default */
-                          lg:text-[clamp(1.8rem,7.5vw,2.1rem)]" /* Desktop-Canonical */
+                className="absolute leading-none text-[clamp(1.1rem,7vw,2.1rem)] lg:text-[clamp(1.8rem,7.5vw,2.1rem)]"
                 style={{ fontFamily: "surah-name-v2", marginTop: "-0.2rem" }}
               >
                 {`surah${String(Number(line.surah) || 0).padStart(3, "0")}`}
@@ -185,24 +213,21 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
             line.words.map((word, idx) => {
               const isWordActive = activeId === word.l;
               const isAyahActive = activeId === `${word.s}:${word.a}`;
-              const isActive = isWordActive || (word.isStopSign && isAyahActive);
+              const isActive = Boolean(isWordActive || (word.isStopSign && isAyahActive));
+              const isTooltipActive = activeTooltip?.word.l === word.l;
 
               const handlePlay = () => {
                 if (word.isStopSign) {
-                  // Ayah end sign clicked: show action menu
-                  const lineIdxForMenu = lineIdx;
-                  setMenuPosition(lineIdxForMenu === 0 ? "bottom" : "top");
+                  setMenuPosition(lineIdx === 0 ? "bottom" : "top");
                   setActionMenuWord(word);
-                } else if (!word.isStopSign) {
+                } else {
                   const url = getWordAudioUrl(word.l);
                   if (url) playUrl(url, word.l, parseInt(word.s), parseInt(word.a));
                 }
               };
 
-               // Helper to find full Ayah Arabic text for Tafseer
               const getAyahArabicWords = (surah: string, ayah: string) => {
                 const ayahWords: string[] = [];
-                // Search in all lines of current page first
                 lines.forEach(l => {
                   l.words.forEach(w => {
                     if (w.s === surah && w.a === ayah && !w.isStopSign) {
@@ -213,66 +238,48 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
                 return ayahWords;
               };
 
-              const translation = wordTranslations[word.l];
-
               return (
-                <WordTooltip key={`${line.line}-${idx}`} translation={word.isStopSign ? undefined : translation} lineIdx={lineIdx} language={language}>
-                  <div className="relative">
+                <div key={word.l || `word-${pageNumber}-${lineIdx}-${idx}`}
+                  className="relative flex items-center justify-center">
+                  {isTooltipActive && (
+                    <SharedTooltip
+                      word={word}
+                      lineIdx={lineIdx}
+                      language={language}
+                      onDismiss={() => setActiveTooltip(null)}
+                    />
+                  )}
+                  <WordGlyph
+                    word={word}
+                    isActive={isActive}
+                    lineIdx={lineIdx}
+                    language={language}
+                    onPlay={handlePlay}
+                    onShowTooltip={() => setActiveTooltip({ word, lineIdx })}
+                  />
+                  {word.isStopSign && (
                     <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={handlePlay}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          handlePlay();
-                        }
-                      }}
-                      className={`
-                        leading-none font-normal cursor-pointer transition-all duration-300
-                        text-[clamp(1.15rem,5.2vw,1.65rem)]  /* Mobile-Default (Slightly Reduced) */
-                        lg:text-[1.75rem]                /* Desktop-Canonical */
-                        text-[#1a1a1a]
-                        ${isActive
-                          ? "bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03] z-20"
-                          : "hover:bg-primary/5 hover:text-primary hover:scale-[1.02]"}
-                      `}
-                      style={{
-                        color: isActive
-                          ? "var(--primary)"
-                          : (word.isStopSign ? "var(--primary)" : "#1a1a1a"),
-                      }}
+                      ref={actionMenuWord?.l === word.l ? menuContainerRef : null}
+                      className={`absolute inset-x-0 bottom-0 z-[10000]
+                        ${actionMenuWord?.l === word.l ? 'pointer-events-auto' : 'pointer-events-none'}`}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {word.c}
+                      <AyahActionPopup
+                        isOpen={actionMenuWord?.l === word.l}
+                        onClose={() => setActionMenuWord(null)}
+                        onListen={() => playAyah(parseInt(word.s), parseInt(word.a))}
+                        onTafseer={() => onOpenTafseer(
+                          parseInt(word.s), parseInt(word.a),
+                          getAyahArabicWords(word.s, word.a),
+                          pageNumber
+                        )}
+                        language={language}
+                        position={menuPosition}
+                        shift={menuShift}
+                      />
                     </div>
-
-                    {word.isStopSign && (
-                      <div 
-                        ref={actionMenuWord?.l === word.l ? menuContainerRef : null} 
-                        className={`absolute inset-x-0 bottom-0 z-[10000] ${actionMenuWord?.l === word.l ? 'pointer-events-auto' : 'pointer-events-none'}`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <AyahActionPopup
-                          isOpen={actionMenuWord?.l === word.l}
-                          onClose={() => setActionMenuWord(null)}
-                          onListen={() => {
-                            playAyah(parseInt(word.s), parseInt(word.a));
-                          }}
-                          onTafseer={() => {
-                            onOpenTafseer(
-                              parseInt(word.s), 
-                              parseInt(word.a), 
-                              getAyahArabicWords(word.s, word.a), 
-                              pageNumber
-                            );
-                          }}
-                          language={language}
-                          position={menuPosition}
-                          shift={menuShift}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </WordTooltip>
+                  )}
+                </div>
               );
             })
           )}
@@ -283,164 +290,100 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   );
 });
 
-function WordTooltip({
-  children,
-  translation,
+function WordGlyph({
+  word,
+  isActive,
   lineIdx,
-  language
+  language,
+  onPlay,
+  onShowTooltip,
 }: {
-  children: React.ReactNode;
-  translation?: string;
+  word: MushafWord;
+  isActive: boolean;
   lineIdx: number;
   language: 'en' | 'ur';
+  onPlay: () => void;
+  onShowTooltip: () => void;
 }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [position, setPosition] = useState<"top" | "bottom">("top");
-  const [shift, setShift] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const translation = language === 'ur' ? word.ur : word.en;
 
-  const handleToggle = (visible: boolean) => {
-    // The Rule: Only flip if it's the absolute first line (index 0)
-    if (visible) {
-      if (lineIdx === 0) {
-        setPosition("bottom");
-      } else {
-        setPosition("top");
-      }
+  const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    if (translation && !word.isStopSign) {
+      onShowTooltip();
     }
-    setIsVisible(visible);
+    onPlay();
   };
-
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isVisible && tooltipRef.current) {
-      const rect = tooltipRef.current.getBoundingClientRect();
-      const gridContainer = tooltipRef.current.closest('.grid-container');
-      const boundary = gridContainer ? gridContainer.getBoundingClientRect() : { left: 0, right: window.innerWidth };
-      
-      const padding = 24;
-      let newShift = 0;
-
-      if (rect.left < boundary.left + padding) {
-        newShift = (boundary.left + padding) - rect.left;
-      } else if (rect.right > boundary.right - padding) {
-        newShift = boundary.right - padding - rect.right;
-      }
-
-      setTimeout(() => setShift(newShift), 0);
-    } else {
-      setTimeout(() => setShift(0), 0);
-    }
-  }, [isVisible]);
-
-  if (!translation) return <>{children}</>;
-
-  const isTop = position === "top";
 
   return (
     <div
-      ref={containerRef}
-      className="relative flex items-center justify-center"
-      onMouseEnter={() => handleToggle(true)}
-      onMouseLeave={() => handleToggle(false)}
-      onClick={() => handleToggle(!isVisible)}
+      role="button"
+      tabIndex={0}
+      onClick={handleTap}
+      className={`leading-none font-normal cursor-pointer transition-colors duration-150
+        text-[clamp(1.15rem,5.2vw,1.65rem)] lg:text-[1.75rem]
+        ${isActive
+          ? "text-primary bg-primary/15 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] scale-[1.03]"
+          : "text-[#1a1a1a] hover:bg-primary/5 hover:text-primary"
+        }`}
+      suppressHydrationWarning
     >
-      {/* Tooltip — always in DOM, toggled by CSS (zero JS per hover) */}
-      <div
-        ref={tooltipRef}
-        className={`absolute ${isTop ? "bottom-full mb-3" : "top-full mt-3"} left-1/2 z-[9999] pointer-events-none
-          transition-all duration-150 ease-out
-          ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
-        style={{
-          filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
-          transformOrigin: isTop ? "bottom center" : "top center",
-          transform: `translateX(calc(-50% + ${shift}px)) ${isVisible ? "translateY(0)" : isTop ? "translateY(-6px)" : "translateY(6px)"} scale(${isVisible ? 1 : 0.95})`,
-        }}
-        aria-hidden={!isVisible}
-      >
-        <div className={`bg-[#54948F] text-white px-3 py-1.5 rounded-md whitespace-nowrap relative font-medium shadow-lg
-          ${language === 'ur' ? 'font-arabic text-lg pb-2' : 'text-sm'}`}>
-          {translation}
-          {/* Arrow */}
-          <div
-            className={`absolute ${isTop ? "top-full" : "bottom-full"} left-1/2 w-0 h-0 
-                      border-l-[6px] border-l-transparent 
-                      border-r-[6px] border-r-transparent 
-                      ${isTop
-                ? "border-t-[6px] border-t-[#54948F]"
-                : "border-b-[6px] border-b-[#54948F]"}`}
-            style={{ 
-              transform: `translateX(calc(-50% - ${shift}px))`,
-              left: '50%'
-            }}
-          />
-        </div>
-      </div>
-      {children}
+      {word.c}
     </div>
   );
 }
 
-export interface MushafSpreadViewerProps {
+export interface MushafSpreadViewerProps { initialPage?: number; }
+
+function getRightPageClient(page: number) { return page <= 1 ? 1 : page % 2 === 1 ? page : page - 1; }
+
+type SpreadData = {
   requestedPage: number;
   rightPage: number;
   leftPage: number;
   rightLines: MushafLine[];
   leftLines: MushafLine[];
-}
+};
 
-// Helpers also needed client-side for shallow routing
-function getRightPageClient(page: number) {
-  if (page <= 1) return 1;
-  return page % 2 === 1 ? page : page - 1;
-}
+export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchPage = searchParams.get('p');
+  
+  const resolvedInitialPage = initialPage || (searchPage ? parseInt(searchPage, 10) : 1);
+  const initialRight = getRightPageClient(resolvedInitialPage);
+  const initialLeft = initialRight + 1 <= 604 ? initialRight + 1 : initialRight;
 
-export default function MushafSpreadViewer({
-  requestedPage: initialRequestedPage,
-  rightPage: initialRightPage,
-  leftPage: initialLeftPage,
-  rightLines: initialRightLines,
-  leftLines: initialLeftLines,
-}: MushafSpreadViewerProps) {
-  // --- SHALLOW ROUTING STATE ---
-  // Initialized from server props; updated client-side on every page turn.
-  const [mushafData, setMushafData] = useState({
-    requestedPage: initialRequestedPage,
-    rightPage: initialRightPage,
-    leftPage: initialLeftPage,
-    rightLines: initialRightLines,
-    leftLines: initialLeftLines,
+  const [activeSpread, setActiveSpread] = useState<SpreadData>({
+    requestedPage: resolvedInitialPage,
+    rightPage: initialRight,
+    leftPage: initialLeft,
+    rightLines: [],
+    leftLines: []
   });
-  const { requestedPage, rightPage, leftPage, rightLines, leftLines } = mushafData;
+  const [bufferSpread, setBufferSpread] = useState<SpreadData | null>(null);
+  const [transitionState, setTransitionState] = useState<'idle' | 'preparing' | 'sliding'>('idle');
 
-  // Sync when Next.js provides fresh server props (e.g. direct URL navigation)
-  useEffect(() => {
-    setMushafData({
-      requestedPage: initialRequestedPage,
-      rightPage: initialRightPage,
-      leftPage: initialLeftPage,
-      rightLines: initialRightLines,
-      leftLines: initialLeftLines,
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialRequestedPage]);
-
+  const { requestedPage, rightPage, leftPage, rightLines, leftLines } = activeSpread;
   const [isFetching, setIsFetching] = useState(false);
   const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
+  const hasBootstrapped = useRef(false);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufferSpreadRef = useRef<SpreadData | null>(null);
+  const isTransitioningRef = useRef(false);
+  const pageCacheRef = useRef<Map<number, MushafLine[]>>(new Map());
+  useEffect(() => {
+    bufferSpreadRef.current = bufferSpread;
+  }, [bufferSpread]);
   const { 
-    fetchWordTranslations, 
     language, 
-    setLastRead,
+    setLastRead, 
+    stopAudio, 
+    currentAyah,
     isTafseerVisible,
-    setIsTafseerVisible,
-    stopAudio
+    setIsTafseerVisible
   } = useAudioContext();
-
-  const [actionMenuWord, setActionMenuWord] = useState<MushafWord | null>(null);
-  const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
-  const [menuShift, setMenuShift] = useState(0);
 
   const [tafseerData, setTafseerData] = useState<{ 
     surah: number; 
@@ -451,115 +394,192 @@ export default function MushafSpreadViewer({
   } | null>(null);
 
   const handleOpenTafseer = useCallback((surah: number, ayah: number, arabicWords: string[], pageNumber: number) => {
-    // chapter.id can be number or string, be safe
-    const chapter = chaptersData.chapters.find(c => Number(c.id) === Number(surah));
-    setTafseerData({
-      surah,
-      ayah,
-      arabicWords,
-      pageNumber,
-      surahName: chapter?.name_simple || `Surah ${surah}`,
+    const chapter = chaptersTiny.find(c => Number(c.id) === Number(surah));
+    requestAnimationFrame(() => {
+      setTafseerData({
+        surah,
+        ayah,
+        arabicWords,
+        pageNumber,
+        surahName: chapter?.name_simple || `Surah ${surah}`,
+      });
+      stopAudio();
+      setIsTafseerVisible(true);
     });
-    stopAudio();
-    setIsTafseerVisible(true);
   }, [stopAudio, setIsTafseerVisible]);
 
-  // Client-side page fetcher — reads static JSON files already in /public
+  const stateRef = useRef({ requestedPage: activeSpread.requestedPage, isFetching });
+  useEffect(() => {
+    stateRef.current = { requestedPage: activeSpread.requestedPage, isFetching };
+  }, [activeSpread.requestedPage, isFetching]);
+
+  const fetchingPageRef = useRef<number | null>(null);
+
+  const getPageData = useCallback(async (pageNo: number): Promise<MushafLine[]> => {
+    if (pageCacheRef.current.has(pageNo)) {
+      return pageCacheRef.current.get(pageNo)!;
+    }
+    const data = await fetch(`/data/pages/${pageNo}.json`).then(r => r.json());
+    pageCacheRef.current.set(pageNo, data);
+    return data;
+  }, []);
+
+  const prefetchNeighbors = useCallback((rPage: number, lPage: number) => {
+    const toFetch = [rPage - 2, rPage - 1, lPage + 1, lPage + 2]
+      .filter(p => p >= 1 && p <= 604 && !pageCacheRef.current.has(p));
+    toFetch.forEach(async (pageNo) => {
+      try {
+        const data = await fetch(`/data/pages/${pageNo}.json`).then(r => r.json());
+        pageCacheRef.current.set(pageNo, data);
+      } catch { }
+    });
+  }, []);
+
   const fetchPageData = useCallback(async (pageTarget: number) => {
+    if (fetchingPageRef.current === pageTarget) return;
+    fetchingPageRef.current = pageTarget;
+
     const rPage = getRightPageClient(pageTarget);
     const lPage = rPage + 1 <= 604 ? rPage + 1 : rPage;
     setIsFetching(true);
-    try {
-      const [rLines, lLines] = await Promise.all([
-        fetch(`/data/pages/${rPage}.json`).then(r => r.json()),
-        fetch(`/data/pages/${lPage}.json`).then(r => r.json()),
-      ]);
-      setMushafData({ requestedPage: pageTarget, rightPage: rPage, leftPage: lPage, rightLines: rLines, leftLines: lLines });
-    } finally {
-      setIsFetching(false);
-      setPendingDirection(null);
-    }
-  }, []);
+    const [rLines, lLines] = await Promise.all([
+      getPageData(rPage),
+      getPageData(lPage),
+    ]);
+    fetchingPageRef.current = null;
+    requestAnimationFrame(() => {
+        setActiveSpread(prev => {
+          const newData = { requestedPage: pageTarget, rightPage: rPage, leftPage: lPage, rightLines: rLines, leftLines: lLines };
+          if (prev.rightLines.length === 0) {
+            setIsFetching(false);
+            setPendingDirection(null);
+            prefetchNeighbors(rPage, lPage);
+            return newData;
+          }
+          setBufferSpread(newData);
+          setIsFetching(false);
+          setTransitionState('preparing');
+          prefetchNeighbors(rPage, lPage);
+          return prev;
+        });
+    });
+  }, [getPageData, prefetchNeighbors]);
 
   useEffect(() => {
-    if (rightPage) fetchWordTranslations(rightPage);
-    if (leftPage && leftPage !== rightPage) fetchWordTranslations(leftPage);
-  }, [rightPage, leftPage, fetchWordTranslations, language]);
+    if (transitionState === 'preparing') {
+      isTransitioningRef.current = true;
+      const raf = requestAnimationFrame(() => {
+        setTransitionState('sliding');
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [transitionState]);
 
-  // Font Pre-activation (Zero Delay Optimization)
+  useEffect(() => {
+    if (transitionState === 'sliding') {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = setTimeout(() => {
+        if (bufferSpreadRef.current) {
+          setActiveSpread(bufferSpreadRef.current);
+          setBufferSpread(null);
+          setTransitionState('idle');
+          setPendingDirection(null);
+          isTransitioningRef.current = false;
+        }
+      }, 170); // 20ms buffer over the 150ms transition
+    }
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, [transitionState]);
+
+  useEffect(() => {
+    if (!hasBootstrapped.current) {
+      hasBootstrapped.current = true;
+      requestAnimationFrame(() => fetchPageData(resolvedInitialPage));
+    }
+  }, [resolvedInitialPage, fetchPageData]);
+
   useEffect(() => {
     const neighbors = [
-      rightPage - 2, 
-      rightPage - 1, 
-      leftPage + 1, 
-      leftPage + 2
+      rightPage - 2, rightPage - 1,
+      leftPage + 1, leftPage + 2
     ].filter(p => p >= 1 && p <= 604);
+    
+    // Pre-load fonts (already doing this)
+    neighbors.forEach(p => document.fonts.load(`1em p${p}`).catch(() => {}));
+    
+    // Pre-fetch data to match (new)
+    prefetchNeighbors(rightPage, leftPage);
+  }, [rightPage, leftPage, prefetchNeighbors]);
 
-    neighbors.forEach(p => {
-      // Background load to "warm up" the font cache before the user swipes
-      document.fonts.load(`1em p${p}`).catch(() => {});
-    });
-  }, [rightPage, leftPage]);
-
-  // Tracking: Save last read position
   useEffect(() => {
     if (!requestedPage || !rightLines.length) return;
-    
-    try {
-      const currentSurahId = getSurahForPage(rightLines);
-      const chapter = chaptersData.chapters.find(c => c.id === currentSurahId);
-      
-      if (chapter) {
-        setLastRead({
-          pageNumber: requestedPage,
-          surahName: chapter.name_simple,
-        });
-      }
-    } catch (err) {
-      console.error("Failed to save last read progress:", err);
-    }
+    const currentSurahId = getSurahForPage(rightLines);
+    const chapter = chaptersTiny.find(c => Number(c.id) === Number(currentSurahId));
+    if (chapter) setLastRead({ pageNumber: requestedPage, surahName: chapter.name_simple });
   }, [requestedPage, rightLines, setLastRead]);
 
   const navigateToPage = useCallback((pageTarget: number) => {
-    if (isFetching) return;
-    if (pageTarget > 604) {
-      setBoundaryFlash('end');
+    if (isTransitioningRef.current) return;  // hard lock
+    if (pageTarget > 604 || pageTarget < 1) {
+      setBoundaryFlash(pageTarget > 604 ? 'end' : 'start');
       setTimeout(() => setBoundaryFlash(null), 400);
       return;
     }
-    if (pageTarget < 1) {
-      setBoundaryFlash('start');
-      setTimeout(() => setBoundaryFlash(null), 400);
-      return;
-    }
-    setPendingDirection(pageTarget > requestedPage ? 'next' : 'prev');
-    // Update URL without triggering a Next.js server round-trip (true shallow routing)
-    window.history.pushState({ page: pageTarget }, '', `/page/${pageTarget}`);
+    setPendingDirection(pageTarget > stateRef.current.requestedPage ? 'next' : 'prev');
+    router.replace(`/read?p=${pageTarget}`, { scroll: false });
     fetchPageData(pageTarget);
-  }, [isFetching, requestedPage, fetchPageData]);
+  }, [router, fetchPageData]);
 
-  // Keyboard Navigation
+  useEffect(() => {
+    if (!currentAyah) return;
+    let targetPage = 1;
+    for (let i = pageStarts.length - 1; i >= 0; i--) {
+      const [sStart, aStart] = (pageStarts[i] as string).split(':').map(Number);
+      if (currentAyah.surah > sStart || (currentAyah.surah === sStart && currentAyah.ayah >= aStart)) {
+        targetPage = i + 1;
+        break;
+      }
+    }
+    const isTargetActive = targetPage === rightPage || targetPage === leftPage || targetPage === requestedPage;
+    const isTargetBuffer = bufferSpread && (targetPage === bufferSpread.rightPage || targetPage === bufferSpread.leftPage || targetPage === bufferSpread.requestedPage);
+    const isTargetFetching = fetchingPageRef.current === targetPage;
+
+    if (!isTargetActive && !isTargetBuffer && !isTargetFetching) {
+      const timer = setTimeout(() => {
+        navigateToPage(targetPage);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentAyah, rightPage, leftPage, requestedPage, bufferSpread, navigateToPage]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isDesktop = window.innerWidth >= 1024;
       if (e.key === "ArrowLeft") {
-        navigateToPage(requestedPage + 1);
+        const nextTarget = isDesktop ? leftPage + 1 : requestedPage + 1;
+        if (nextTarget <= 604) navigateToPage(nextTarget);
       } else if (e.key === "ArrowRight") {
-        navigateToPage(requestedPage - 1);
+        const prevTarget = isDesktop ? rightPage - 1 : requestedPage - 1;
+        if (prevTarget >= 1) navigateToPage(prevTarget);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [requestedPage, navigateToPage]);
+  }, [requestedPage, leftPage, rightPage, navigateToPage]);
 
-  // Browser back/forward support for history.pushState navigation
   useEffect(() => {
-    const handlePopState = () => {
-      const match = window.location.pathname.match(/\/page\/(\d+)/);
-      if (match) fetchPageData(parseInt(match[1], 10));
+    const handleNavigateEvent = (e: Event) => {
+      const page = (e as CustomEvent).detail?.page;
+      if (page && typeof page === 'number' && page >= 1 && page <= 604) {
+        router.push(`/read?p=${page}`, { scroll: false });
+        fetchPageData(page);
+      }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [fetchPageData]);
+    window.addEventListener('navigate-to-page', handleNavigateEvent);
+    return () => window.removeEventListener('navigate-to-page', handleNavigateEvent);
+  }, [fetchPageData, router]);
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -577,16 +597,19 @@ export default function MushafSpreadViewer({
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEndSwipe = () => {
     if (!touchStart || !touchEnd || isFetching) return;
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
 
-    if (isRightSwipe && requestedPage < 604) {
-      navigateToPage(requestedPage + 1);
-    } else if (isLeftSwipe && requestedPage > 1) {
-      navigateToPage(requestedPage - 1);
+    if (isRightSwipe) {
+      const nextTarget = isDesktop ? leftPage + 1 : requestedPage + 1;
+      if (nextTarget <= 604) navigateToPage(nextTarget);
+    } else if (isLeftSwipe) {
+      const prevTarget = isDesktop ? rightPage - 1 : requestedPage - 1;
+      if (prevTarget >= 1) navigateToPage(prevTarget);
     }
   };
 
@@ -596,60 +619,56 @@ export default function MushafSpreadViewer({
     const { deltaX, deltaY } = e;
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > threshold) {
       isWheelLocked.current = true;
-      if (deltaX > 0 && requestedPage < 604) {
-        navigateToPage(requestedPage + 1);
-      } else if (deltaX < 0 && requestedPage > 1) {
-        navigateToPage(requestedPage - 1);
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+      if (deltaX > 0) {
+        const nextTarget = isDesktop ? leftPage + 1 : requestedPage + 1;
+        if (nextTarget <= 604) navigateToPage(nextTarget);
+      } else if (deltaX < 0) {
+        const prevTarget = isDesktop ? rightPage - 1 : requestedPage - 1;
+        if (prevTarget >= 1) navigateToPage(prevTarget);
       }
       setTimeout(() => { isWheelLocked.current = false; }, 800);
     }
   };
 
-  // Determine reading direction for animation based on rightPage changes
-  const [direction, setDirection] = useState(0);
-  const [prevRight, setPrevRight] = useState(rightPage);
+  const getTransformStyles = (isBuffer: boolean) => {
+    const isNext = pendingDirection === 'next';
+    
+    if (transitionState === 'idle') {
+      return { transform: 'translateX(0%)', transition: 'none' };
+    }
 
-  if (rightPage !== prevRight) {
-    setDirection(rightPage > prevRight ? 1 : -1);
-    setPrevRight(rightPage);
+    if (transitionState === 'preparing') {
+      if (isBuffer) {
+        return { transform: isNext ? 'translateX(-100%)' : 'translateX(100%)', transition: 'none' };
+      }
+      return { transform: 'translateX(0%)', transition: 'none' };
+    }
+    
+    if (transitionState === 'sliding') {
+      if (isBuffer) {
+        return { transform: 'translateX(0%)', transition: 'transform 0.15s ease-out' };
+      }
+      return { transform: isNext ? 'translateX(100%)' : 'translateX(-100%)', transition: 'transform 0.15s ease-out' };
+    }
+
+    return {};
+  };
+
+  const spreadsToRender: { type: 'active' | 'buffer'; spread: SpreadData }[] = [
+    { type: 'active', spread: activeSpread },
+  ];
+  if (bufferSpread && (transitionState === 'preparing' || transitionState === 'sliding')) {
+    spreadsToRender.push({ type: 'buffer', spread: bufferSpread });
   }
 
-  const pages = [
-    { pageNumber: rightPage, lines: rightLines },
-    { pageNumber: leftPage, lines: leftLines },
-  ];
-
-  const fontCss = useMemo(() => buildPageFontCss([rightPage, leftPage]), [rightPage, leftPage]);
+  const fontCss = useMemo(() => {
+    const allPages = [rightPage, leftPage, rightPage - 2, rightPage - 1, leftPage + 1, leftPage + 2].filter(p => p >= 1 && p <= 604);
+    return buildPageFontCss(allPages);
+  }, [rightPage, leftPage]);
   const preloadPages = [rightPage, leftPage];
-
-  // Desktop navigation: move by 2 pages (spread)
-  const previousPageHref = rightPage > 1 ? `/page/${Math.max(1, rightPage - 2)}` : null;
-  const nextPageHref = rightPage + 2 <= 603 ? `/page/${rightPage + 2}` : null;
-
-  // Book flipping variants matching an RTL book structure.
-  const variants = {
-    enter: (direction: number) => {
-      return {
-        rotateY: direction > 0 ? 90 : -90,
-        opacity: 0,
-        x: direction > 0 ? -50 : 50,
-      };
-    },
-    center: {
-      zIndex: 1,
-      rotateY: 0,
-      opacity: 1,
-      x: 0,
-    },
-    exit: (direction: number) => {
-      return {
-        zIndex: 0,
-        rotateY: direction < 0 ? 90 : -90,
-        opacity: 0,
-        x: direction < 0 ? -50 : 50,
-      };
-    },
-  };
+  const nextPageHref = requestedPage < 604;
+  const previousPageHref = requestedPage > 1;
 
   return (
     <main
@@ -657,7 +676,7 @@ export default function MushafSpreadViewer({
       style={{ perspective: "2500px" }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onTouchEnd={handleTouchEndSwipe}
       onWheel={handleWheel}
     >
       <style jsx global>{`
@@ -669,126 +688,101 @@ export default function MushafSpreadViewer({
       `}</style>
       <QpcFontStyleRegistry cssText={fontCss} preloadPages={preloadPages} />
 
-      <div className="w-full max-w-[280dvh] flex-1 flex items-center justify-center relative">
-        {/* THE MOMENTUM ARROWS (Tailwind Powered) */}
-        <div className={`absolute left-4 lg:left-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isFetching && pendingDirection === 'next' ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="animate-arrow-pulse-left bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-primary">
-            <span className="text-5xl leading-none -mr-1 mb-1 font-light">›</span>
-          </div>
-        </div>
-        
-        <div className={`absolute right-4 lg:right-10 top-1/2 z-[100] pointer-events-none lg:hidden transition-opacity duration-150 ${isFetching && pendingDirection === 'prev' ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="animate-arrow-pulse-right bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-primary">
-            <span className="text-5xl leading-none -mr-1 mb-1 font-light">‹</span>
-          </div>
-        </div>
+      <div className="w-full max-w-[280dvh] flex-1 flex items-center lg:items-stretch justify-center relative overflow-hidden">
 
-        {/* THE BOUNDARY FEEDBACK — CSS opacity, no JS animation */}
         <div
           className={`absolute inset-0 z-[101] pointer-events-none rounded-sm border-8 border-red-500/20 bg-red-500/5 mix-blend-multiply transition-opacity duration-200 ${boundaryFlash ? "opacity-100" : "opacity-0"}`}
         />
 
-        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-          <motion.section
-            key={`spread-${rightPage}-${leftPage}`}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              rotateY: { type: "tween", duration: 0.6, ease: [0.32, 0.72, 0, 1] },
-              opacity: { duration: 0.3 },
-              x: { type: "tween", duration: 0.6, ease: [0.32, 0.72, 0, 1] }
-            }}
-            style={{ transformStyle: "preserve-3d" }}
-            dir="rtl"
-            className="flex flex-col lg:flex-row gap-0 w-full h-[100dvh] max-h-[100dvh] lg:h-full lg:max-h-full origin-center relative items-center justify-center"
-          >
-            {/* The Spine shadow */}
-            <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1px] -translate-x-1/2 bg-divider/50 shadow-[0_0_20px_10px_rgba(var(--primary-rgb),0.08)] lg:block z-20" />
+        {spreadsToRender.map(({ type, spread }) => {
+          const pages = [
+            { pageNumber: spread.rightPage, lines: spread.rightLines },
+            { pageNumber: spread.leftPage, lines: spread.leftLines },
+          ];
+          const styles = getTransformStyles(type === 'buffer');
 
-
-
-            {pages.map((page) => (
-              <article
-                key={page.pageNumber}
-                style={{ backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
-                className={`relative mx-0 w-full max-w-137.5 lg:rounded-sm bg-surface shadow-[0_0_40px_rgba(var(--primary-rgb),0.16)] lg:border lg:border-primary/10 flex-col pt-3 pb-1 h-full transition-all duration-300
-                  ${page.pageNumber === requestedPage ? "flex flex-1" : "hidden lg:flex flex-1"}
-                  ${isFetching ? "opacity-70 blur-[1px] scale-[0.99]" : "opacity-100 scale-100"}
-                `}
+          return (
+            <div 
+              key={`spread-wrapper-${type}`}
+              className="absolute inset-0 w-full h-full will-change-transform bg-background"
+              style={styles}
+            >
+              <section
+                dir="rtl"
+                className="flex flex-col lg:flex-row gap-0 w-full h-[100dvh] max-h-[100dvh] lg:h-full lg:max-h-full origin-center relative items-center lg:items-stretch justify-center"
               >
-                {/* Celestial Header Slot - with backdrop blur and transparency */}
-                <div className="h-10 w-full flex items-center justify-between px-2 lg:px-8 text-xs font-medium text-muted sticky top-0 bg-white/80 backdrop-blur-md z-30 transition-all border-b border-divider/5">
-                  {/* Juz Name on the Right - Reverted to calligraphic icons */}
-                  <div
-                    className="flex-1 text-right text-lg leading-none text-primary/80 select-none pr-2"
-                    style={{
-                      fontFamily: 'QuranCommon',
-                      fontVariantLigatures: 'common-ligatures',
-                      fontFeatureSettings: '"liga" on',
-                      textRendering: 'optimizeLegibility',
-                    }}
-                    dir="ltr"
-                  >
-                    {`j${getJuzForPage(page.lines).toString().padStart(3, "0")}`}
-                  </div>
+                  <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1px] -translate-x-1/2 bg-divider/50 shadow-[0_0_20px_10px_rgba(var(--primary-rgb),0.08)] lg:block z-20" />
 
-                  {/* Surah Name on the Left */}
-                  <div
-                    className="flex-1 flex justify-end items-center gap-2 text-xl leading-none text-primary/80 select-none pb-1"
-                    dir="rtl"
-                  >
-                    <div style={{ fontFamily: 'surah-name-v3', textRendering: 'optimizeLegibility' }}>
-                      سُورَةُ {getSurahNameArabic(getSurahForPage(page.lines))}
-                    </div>
-                    <button
-                      className="lg:hidden p-1 text-muted hover:text-primary transition-colors cursor-pointer"
-                      onClick={() => window.dispatchEvent(new CustomEvent('open-side-menu'))}
-                      aria-label="Open side menu"
+                  {pages.map((page, index) => (
+                    <article
+                      key={`page-slot-${index}`}
+                      style={{ backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
+                      className={`relative mx-0 w-full max-w-137.5 lg:rounded-sm bg-surface shadow-[0_0_40px_rgba(var(--primary-rgb),0.16)] lg:border lg:border-primary/10 flex-col pt-3 pb-1 h-full
+                        ${page.pageNumber === spread.requestedPage ? "flex flex-1" : "hidden lg:flex flex-1"}
+                      `}
                     >
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="3" y1="12" x2="21" y2="12" />
-                        <line x1="3" y1="6" x2="21" y2="6" />
-                        <line x1="3" y1="18" x2="21" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                      <div className="h-10 w-full flex items-center justify-between px-2 lg:px-8 text-xs font-medium text-muted sticky top-0 bg-white/80 backdrop-blur-md z-30 transition-all border-b border-divider/5">
+                        <div
+                          className="flex-1 text-right text-lg leading-none text-primary/80 select-none pr-2"
+                          style={{
+                            fontFamily: 'QuranCommon',
+                            fontVariantLigatures: 'common-ligatures',
+                            fontFeatureSettings: '"liga" on',
+                            textRendering: 'optimizeLegibility',
+                          }}
+                          dir="ltr"
+                        >
+                          {`j${getJuzForPage(page.lines).toString().padStart(3, "0")}`}
+                        </div>
 
-                {/* Keyline Divider */}
-                <div className="mx-2 lg:mx-8 mb-3 border-t border-divider" />
+                        <div
+                          className="flex-1 flex justify-end items-center gap-2 text-xl leading-none text-primary/80 select-none pb-1"
+                          dir="rtl"
+                        >
+                          <div style={{ fontFamily: 'surah-name-v3', textRendering: 'optimizeLegibility' }}>
+                            سُورَةُ {getSurahNameArabic(getSurahForPage(page.lines))}
+                          </div>
+                          <button
+                            className="lg:hidden p-1 text-muted hover:text-primary transition-colors cursor-pointer"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-side-menu'))}
+                            aria-label="Open side menu"
+                          >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="3" y1="12" x2="21" y2="12" />
+                              <line x1="3" y1="6" x2="21" y2="6" />
+                              <line x1="3" y1="18" x2="21" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
 
-                <div className="relative z-10 flex-1 w-full pt-2 px-5 lg:px-8 pb-2 select-none">
-                  <FifteenLineGrid
-                    pageNumber={page.pageNumber}
-                    lines={page.lines}
-                    onOpenTafseer={handleOpenTafseer}
-                    actionMenuWord={actionMenuWord}
-                    setActionMenuWord={setActionMenuWord}
-                    menuPosition={menuPosition}
-                    setMenuPosition={setMenuPosition}
-                    menuShift={menuShift}
-                    setMenuShift={setMenuShift}
-                  />
-                </div>
+                      <div className="mx-2 lg:mx-8 mb-3 border-t border-divider" />
 
-                {/* Arabic Page Number at Bottom */}
-                <div className="mt-auto py-1 flex items-center justify-center text-xl font-medium text-primary opacity-70">
-                  {toArabicDigits(page.pageNumber)}
-                </div>
-              </article>
-            ))}
-          </motion.section>
-        </AnimatePresence>
+                      <div className="relative z-10 flex-1 w-full pt-2 px-5 lg:px-8 pb-2 select-none">
+                        <FifteenLineGrid
+                          key={`grid-${page.pageNumber}`}
+                          pageNumber={page.pageNumber}
+                          lines={page.lines}
+                          onOpenTafseer={handleOpenTafseer}
+                        />
+                      </div>
+
+                      <div className="mt-auto py-1 flex items-center justify-center text-xl font-medium text-primary opacity-70">
+                        {toArabicDigits(page.pageNumber)}
+                      </div>
+                    </article>
+                  ))}
+              </section>
+            </div>
+          );
+        })}
       </div>
 
       {/* Desktop Navigation */}
-      <div className="hidden lg:flex pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-50 items-center justify-between w-full max-w-[1400px] mx-auto px-6 sx:px-12">
-        {nextPageHref ? (
+      <div className="hidden lg:flex pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-50 items-center justify-between w-full max-w-[1400px] mx-auto px-6 lg:px-12">
+        {leftPage < 604 ? (
           <button
-            onClick={() => navigateToPage(rightPage + 2)}
+            onClick={() => navigateToPage(leftPage + 1)}
             className={`pointer-events-auto rounded-2xl border px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
               ${isFetching && pendingDirection === 'next'
                 ? "bg-primary text-white border-primary scale-105 animate-pulse"
@@ -799,9 +793,9 @@ export default function MushafSpreadViewer({
             ‹
           </button>
         ) : <div />}
-        {previousPageHref ? (
+        {rightPage > 1 ? (
           <button
-            onClick={() => navigateToPage(rightPage - 2)}
+            onClick={() => navigateToPage(rightPage - 1)}
             className={`pointer-events-auto rounded-2xl border px-4 py-12 text-4xl font-semibold shadow-2xl transition-all active:scale-95 flex items-center justify-center min-w-[64px]
               ${isFetching && pendingDirection === 'prev'
                 ? "bg-primary text-white border-primary scale-105 animate-pulse"
@@ -814,8 +808,8 @@ export default function MushafSpreadViewer({
         ) : <div />}
       </div>
 
-      {/* Mobile Navigation replaced by swiping logic directly on main tag */}
-      {/* Tafseer Drawer */}
+
+
       <AyahTafseerDrawer
         isOpen={isTafseerVisible}
         onClose={() => {
@@ -825,8 +819,6 @@ export default function MushafSpreadViewer({
         surahId={tafseerData?.surah || 0}
         surahName={tafseerData?.surahName || ""}
         ayahNumber={tafseerData?.ayah || 0}
-        arabicWords={tafseerData?.arabicWords}
-        pageNumber={tafseerData?.pageNumber}
         language={language}
       />
     </main>

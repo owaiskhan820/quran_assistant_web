@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Chapter, Juz } from "@/types/quran";
+import { ChapterTiny, Juz } from "@/types/quran";
 import SearchIcon from "@/components/icons/SearchIcon";
 
 interface SideNavMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  chapters: Chapter[];
+  chapters: ChapterTiny[];
   juzs: Juz[];
 }
 
@@ -26,10 +26,24 @@ export default function SideNavMenu({
 }: SideNavMenuProps) {
   const { data: session } = useSession();
   const params = useParams();
+  const pathname = usePathname();
   const currentPage = Number(params?.pageNumber) || 1;
   const [activeTab, setActiveTab] = useState<NavTab>("surah");
   const [searchQuery, setSearchQuery] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // Navigate to a Mushaf page without causing a full re-mount
+  const navigateToMushafPage = useCallback((page: number) => {
+    const isMushafActive = pathname === "/read";
+    if (isMushafActive) {
+      // Viewer is already mounted — dispatch event for zero-remount navigation
+      window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: { page } }));
+    } else {
+      // First visit from home/settings — fall back to standard navigation
+      window.location.href = `/read?p=${page}`;
+    }
+    onClose();
+  }, [pathname, onClose]);
 
   const isNumericSearch = /^\d+$/.test(searchQuery.trim());
   const searchNumber = isNumericSearch ? parseInt(searchQuery.trim(), 10) : 0;
@@ -209,10 +223,9 @@ export default function SideNavMenu({
                         const surah = chapters.find(c => c.id === searchNumber);
                         if (!surah) return null;
                         return (
-                          <Link
-                            href={`/page/${surah.pages[0]}`}
-                            onClick={onClose}
-                            className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                          <button
+                            onClick={() => navigateToMushafPage(surah.pages[0])}
+                            className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5 w-full text-left"
                           >
                             <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
                               <span className="text-emerald-700 font-bold text-sm">S</span>
@@ -221,15 +234,14 @@ export default function SideNavMenu({
                               <div className="text-sm font-semibold text-gray-900">Surah {surah.name_simple}</div>
                               <div className="text-xs text-gray-500">Go to Surah {searchNumber}</div>
                             </div>
-                          </Link>
+                          </button>
                         )
                       })()}
 
                       {searchNumber >= 1 && searchNumber <= 30 && (
-                        <Link
-                          href={`/page/${JUZ_START_PAGES[searchNumber - 1]}`}
-                          onClick={onClose}
-                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                        <button
+                          onClick={() => navigateToMushafPage(JUZ_START_PAGES[searchNumber - 1])}
+                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5 w-full text-left"
                         >
                             <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
                               <span className="text-emerald-700 font-bold text-sm">J</span>
@@ -238,14 +250,13 @@ export default function SideNavMenu({
                             <div className="text-sm font-semibold text-gray-900">Juz {searchNumber}</div>
                             <div className="text-xs text-gray-500">Go to Juz {searchNumber}</div>
                           </div>
-                        </Link>
+                        </button>
                       )}
 
                       {searchNumber >= 1 && searchNumber <= 604 && (
-                        <Link
-                          href={`/page/${searchNumber}`}
-                          onClick={onClose}
-                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                        <button
+                          onClick={() => navigateToMushafPage(searchNumber)}
+                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5 w-full text-left"
                         >
                             <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
                               <span className="text-emerald-700 font-bold text-sm">P</span>
@@ -254,7 +265,7 @@ export default function SideNavMenu({
                             <div className="text-sm font-semibold text-gray-900">Page {searchNumber}</div>
                             <div className="text-xs text-gray-500">Go to Page {searchNumber}</div>
                           </div>
-                        </Link>
+                        </button>
                       )}
 
                       {searchNumber > 604 && (
@@ -266,11 +277,10 @@ export default function SideNavMenu({
                   ) : (
                     <>
                       {textMatches.map(surah => (
-                        <Link
+                        <button
                           key={surah.id}
-                          href={`/page/${surah.pages[0]}`}
-                          onClick={onClose}
-                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5"
+                          onClick={() => navigateToMushafPage(surah.pages[0])}
+                          className="group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 hover:bg-emerald-500/5 w-full text-left"
                         >
                           <div className="relative flex items-center justify-center w-11 h-11 shrink-0 bg-emerald-50 rounded-xl">
                             <span className="text-emerald-700 font-bold text-sm">{surah.id}</span>
@@ -279,7 +289,7 @@ export default function SideNavMenu({
                             <div className="text-sm font-semibold text-gray-900">Surah {surah.name_simple}</div>
                             <div className="text-xs text-gray-500">Go to Surah {surah.id}</div>
                           </div>
-                        </Link>
+                        </button>
                       ))}
                     </>
                   )}
@@ -290,11 +300,10 @@ export default function SideNavMenu({
                     const isActive = currentPage >= surah.pages[0] && currentPage <= surah.pages[1];
                     
                     return (
-                      <Link
+                      <button
                         key={surah.id}
-                        href={`/page/${surah.pages[0]}`}
-                        onClick={onClose}
-                        className={`group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 ${
+                        onClick={() => navigateToMushafPage(surah.pages[0])}
+                        className={`group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 w-full text-left ${
                           isActive 
                             ? "bg-emerald-500/10" 
                             : "hover:bg-emerald-500/5"
@@ -323,7 +332,7 @@ export default function SideNavMenu({
                               {surah.name_simple}
                             </span>
                             <span className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-medium">
-                              {surah.translated_name.name}
+                              {surah.translated_name}
                             </span>
                           </div>
                           
@@ -336,7 +345,7 @@ export default function SideNavMenu({
                             {`surah${surah.id.toString().padStart(3, "0")}`}
                           </span>
                         </div>
-                      </Link>
+                      </button>
                     );
                   })}
                 </div>
@@ -348,11 +357,10 @@ export default function SideNavMenu({
                     const isActive = currentPage >= startPage && currentPage < nextJuzStartPage;
                     
                     return (
-                      <Link
+                      <button
                         key={juz.juz}
-                        href={`/page/${startPage}`}
-                        onClick={onClose}
-                        className={`group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 ${
+                        onClick={() => navigateToMushafPage(startPage)}
+                        className={`group flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 w-full text-left ${
                           isActive 
                             ? "bg-emerald-500/10" 
                             : "hover:bg-emerald-500/5"
@@ -400,7 +408,7 @@ export default function SideNavMenu({
                             {`j${juz.juz.toString().padStart(3, "0")}`}
                           </span>
                         </div>
-                      </Link>
+                      </button>
                     );
                   })}
                 </div>

@@ -317,8 +317,8 @@ export default function SettingsClient() {
 
             <div className="pt-8 flex justify-center">
               <Link 
-                href={lastRead ? `/page/${lastRead.pageNumber}` : "/page/1"}
-                className="px-10 py-3.5 bg-[#1a4d4a] text-white rounded-xl font-bold flex items-center gap-3 shadow-xl shadow-emerald-900/20 hover:scale-105 active:scale-95 transition-all"
+                href={lastRead ? `/read?p=${lastRead.pageNumber}` : "/read?p=1"}
+                className="flex items-center gap-3 px-6 py-3 rounded-full bg-emerald-600 text-white font-bold hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-emerald-500/25"
               >
                 Finish & Return to Mushaf
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
