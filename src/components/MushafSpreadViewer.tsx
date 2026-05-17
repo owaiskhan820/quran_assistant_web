@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback, memo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import QpcFontStyleRegistry from "@/components/QpcFontStyleRegistry";
-import { useAudioContext } from "@/context/AudioContext";
+import SpecialFontLoader from "@/components/QpcFontStyleRegistry";
+import { loadPageFont, preloadPageFonts } from "@/lib/fontLoader";
+import { useAudioContext, useAudioState, useAudioActions } from "@/context/AudioContext";
 import type { MushafLine, MushafWord } from "@/types/mushaf";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import MushafSkeleton from "@/components/MushafSkeleton";
@@ -21,21 +22,7 @@ const toArabicDigits = (num: number) => {
   return num.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
 };
 
-function buildPageFontCss(pageNumbers: number[]): string {
-  const uniquePages = [...new Set(pageNumbers)].sort((a, b) => a - b);
-  const specialFonts = [
-    "@font-face{font-family:'surah-name-v2';src:url('/fonts/common/surah-name-v2.woff2') format('woff2');font-display:block;}",
-  ].join("\n");
 
-  const pageFonts = uniquePages
-    .map(
-      (page) =>
-        `@font-face{font-family:'p${page}';src:url('/fonts/qpc/p${page}.woff2') format('woff2');font-display:swap;}`,
-    )
-    .join("\n");
-
-  return `${specialFonts}\n${pageFonts}`;
-}
 
 function getWordAudioUrl(location: string): string | null {
   if (!location) return null;
@@ -91,7 +78,8 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   lines: MushafLine[];
   onOpenTafseer: (surah: number, ayah: number, arabicWords: string[], pageNumber: number) => void;
 }) {
-  const { playAyah, playUrl, activeId, language } = useAudioContext();
+  const { playAyah } = useAudioActions();
+  const { language } = useAudioState();
   const [actionMenuWord, setActionMenuWord] = useState<MushafWord | null>(null);
   const [menuPosition, setMenuPosition] = useState<"top" | "bottom">("top");
   const [menuShift, setMenuShift] = useState(0);
@@ -104,6 +92,15 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
     lineIdx: number;
   } | null>(null);
   const tooltipDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleWordAction = useCallback((word: MushafWord, lineIdx: number, action: 'stopSign' | 'tooltip') => {
+    if (action === 'stopSign') {
+      setMenuPosition(lineIdx === 0 ? "bottom" : "top");
+      setActionMenuWord(word);
+    } else if (action === 'tooltip') {
+      setActiveTooltip({ word, lineIdx });
+    }
+  }, []);
 
   useEffect(() => {
     setActiveTooltip(null);
@@ -141,6 +138,13 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   useEffect(() => {
     requestAnimationFrame(() => setActionMenuWord(null));
   }, [pageNumber, setActionMenuWord]);
+
+  useEffect(() => {
+    const isReady = document.fonts.check(`1em p${pageNumber}`);
+    console.log(
+      `[GRID RENDER] page=${pageNumber} | font_ready=${isReady} | lines=${lines.length} | ts=${performance.now().toFixed(1)}`
+    );
+  });  // no dependency array — fires after EVERY render
 
   function Basmalah() {
     return (
@@ -211,20 +215,7 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
             <div className="h-full w-full" />
           ) : (
             line.words.map((word, idx) => {
-              const isWordActive = activeId === word.l;
-              const isAyahActive = activeId === `${word.s}:${word.a}`;
-              const isActive = Boolean(isWordActive || (word.isStopSign && isAyahActive));
               const isTooltipActive = activeTooltip?.word.l === word.l;
-
-              const handlePlay = () => {
-                if (word.isStopSign) {
-                  setMenuPosition(lineIdx === 0 ? "bottom" : "top");
-                  setActionMenuWord(word);
-                } else {
-                  const url = getWordAudioUrl(word.l);
-                  if (url) playUrl(url, word.l, parseInt(word.s), parseInt(word.a));
-                }
-              };
 
               const getAyahArabicWords = (surah: string, ayah: string) => {
                 const ayahWords: string[] = [];
@@ -251,11 +242,9 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
                   )}
                   <WordGlyph
                     word={word}
-                    isActive={isActive}
                     lineIdx={lineIdx}
                     language={language}
-                    onPlay={handlePlay}
-                    onShowTooltip={() => setActiveTooltip({ word, lineIdx })}
+                    onAction={handleWordAction}
                   />
                   {word.isStopSign && (
                     <div
@@ -290,29 +279,34 @@ const FifteenLineGrid = memo(function FifteenLineGrid({
   );
 });
 
-function WordGlyph({
+const WordGlyphComponent = function WordGlyph({
   word,
-  isActive,
   lineIdx,
   language,
-  onPlay,
-  onShowTooltip,
+  onAction,
 }: {
   word: MushafWord;
-  isActive: boolean;
   lineIdx: number;
   language: 'en' | 'ur';
-  onPlay: () => void;
-  onShowTooltip: () => void;
+  onAction: (word: MushafWord, lineIdx: number, action: 'stopSign' | 'tooltip') => void;
 }) {
+  const { activeId } = useAudioState();
+  const { playUrl } = useAudioActions();
+  
+  const isWordActive = activeId === word.l;
+  const isAyahActive = activeId === `${word.s}:${word.a}`;
+  const isActive = Boolean(isWordActive || (word.isStopSign && isAyahActive));
   const translation = language === 'ur' ? word.ur : word.en;
 
   const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
-    if (translation && !word.isStopSign) {
-      onShowTooltip();
+    if (word.isStopSign) {
+      onAction(word, lineIdx, 'stopSign');
+    } else {
+      if (translation) onAction(word, lineIdx, 'tooltip');
+      const url = getWordAudioUrl(word.l);
+      if (url) playUrl(url, word.l, parseInt(word.s), parseInt(word.a));
     }
-    onPlay();
   };
 
   return (
@@ -331,7 +325,12 @@ function WordGlyph({
       {word.c}
     </div>
   );
-}
+};
+
+const WordGlyph = memo(WordGlyphComponent, (prev, next) => {
+  return prev.word.l === next.word.l &&
+         prev.language === next.language;
+});
 
 export interface MushafSpreadViewerProps { initialPage?: number; }
 
@@ -365,6 +364,14 @@ export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerPr
   const [transitionState, setTransitionState] = useState<'idle' | 'preparing' | 'sliding'>('idle');
 
   const { requestedPage, rightPage, leftPage, rightLines, leftLines } = activeSpread;
+
+  useEffect(() => {
+    const isRightReady = document.fonts.check(`1em p${activeSpread.rightPage}`);
+    const isLeftReady = document.fonts.check(`1em p${activeSpread.leftPage}`);
+    console.log(
+      `[SPREAD LAND] right=${activeSpread.rightPage} ready=${isRightReady} | left=${activeSpread.leftPage} ready=${isLeftReady} | ts=${performance.now().toFixed(1)}`
+    );
+  }, [activeSpread]);
   const [isFetching, setIsFetching] = useState(false);
   const [pendingDirection, setPendingDirection] = useState<'next' | 'prev' | null>(null);
   const [boundaryFlash, setBoundaryFlash] = useState<'start' | 'end' | null>(null);
@@ -376,14 +383,8 @@ export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerPr
   useEffect(() => {
     bufferSpreadRef.current = bufferSpread;
   }, [bufferSpread]);
-  const { 
-    language, 
-    setLastRead, 
-    stopAudio, 
-    currentAyah,
-    isTafseerVisible,
-    setIsTafseerVisible
-  } = useAudioContext();
+  const { setLastRead, stopAudio, setIsTafseerVisible } = useAudioActions();
+  const { language, lastRead, isTafseerVisible, currentAyah } = useAudioState();
 
   const [tafseerData, setTafseerData] = useState<{ 
     surah: number; 
@@ -446,6 +447,13 @@ export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerPr
       getPageData(rPage),
       getPageData(lPage),
     ]);
+
+    // Load active page fonts — await both before transitioning
+    await Promise.all([
+      loadPageFont(rPage),
+      loadPageFont(lPage),
+    ]);
+
     fetchingPageRef.current = null;
     requestAnimationFrame(() => {
         setActiveSpread(prev => {
@@ -501,17 +509,13 @@ export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerPr
   }, [resolvedInitialPage, fetchPageData]);
 
   useEffect(() => {
-    const neighbors = [
-      rightPage - 2, rightPage - 1,
-      leftPage + 1, leftPage + 2
-    ].filter(p => p >= 1 && p <= 604);
-    
-    // Pre-load fonts (already doing this)
-    neighbors.forEach(p => document.fonts.load(`1em p${p}`).catch(() => {}));
-    
-    // Pre-fetch data to match (new)
-    prefetchNeighbors(rightPage, leftPage);
-  }, [rightPage, leftPage, prefetchNeighbors]);
+    preloadPageFonts([
+      rightPage - 2,
+      rightPage - 1,
+      leftPage + 1,
+      leftPage + 2,
+    ].filter(p => p >= 1 && p <= 604));
+  }, [rightPage, leftPage]);
 
   useEffect(() => {
     if (!requestedPage || !rightLines.length) return;
@@ -662,10 +666,7 @@ export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerPr
     spreadsToRender.push({ type: 'buffer', spread: bufferSpread });
   }
 
-  const fontCss = useMemo(() => {
-    const allPages = [rightPage, leftPage, rightPage - 2, rightPage - 1, leftPage + 1, leftPage + 2].filter(p => p >= 1 && p <= 604);
-    return buildPageFontCss(allPages);
-  }, [rightPage, leftPage]);
+
   const preloadPages = [rightPage, leftPage];
   const nextPageHref = requestedPage < 604;
   const previousPageHref = requestedPage > 1;
@@ -686,7 +687,7 @@ export default function MushafSpreadViewer({ initialPage }: MushafSpreadViewerPr
           touch-action: none;
         }
       `}</style>
-      <QpcFontStyleRegistry cssText={fontCss} preloadPages={preloadPages} />
+      <SpecialFontLoader />
 
       <div className="w-full max-w-[280dvh] flex-1 flex items-center lg:items-stretch justify-center relative overflow-hidden">
 

@@ -19,26 +19,35 @@ import {
   Repeat,
   Repeat1
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 
-export default function MediaPlayer() {
-  const { 
-    currentAyah, 
-    isPlaying, 
-    isAutoplay, 
-    togglePlay, 
-    toggleAutoplay, 
+const MediaPlayer = memo(function MediaPlayer() {
+  const {
+    currentAyah,
+    isPlaying,
+    isAutoplay,
+    togglePlay,
+    toggleAutoplay,
     stopAudio,
     playNextAyah,
     playPreviousAyah,
-    reciters, 
-    reciterId, 
+    reciters,
+    reciterId,
     setReciter,
     translationId,
     setTranslationId,
     translationText,
     translations,
-    playAyah
+    playAyah,
+    repeatMode,
+    setRepeatMode,
+    repeatCount,
+    setRepeatCount,
+    repeatRange,
+    setRepeatRange,
+    rangeRepeatCount,
+    setRangeRepeatCount,
+    isTafseerVisible,
   } = useAudioContext();
 
   const [isReciterMenuOpen, setIsReciterMenuOpen] = useState(false);
@@ -49,17 +58,7 @@ export default function MediaPlayer() {
   const [translationKey, setTranslationKey] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const {
-    repeatMode,
-    setRepeatMode,
-    repeatCount,
-    setRepeatCount,
-    repeatRange,
-    setRepeatRange,
-    rangeRepeatCount,
-    setRangeRepeatCount,
-    isTafseerVisible
-  } = useAudioContext();
+
 
   const filteredReciters = reciters;
   const filteredTranslations = translations;
@@ -482,4 +481,6 @@ export default function MediaPlayer() {
       </div>
     </div>
   );
-}
+});
+
+export default MediaPlayer;

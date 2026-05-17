@@ -1,62 +1,28 @@
 "use client";
+import { useEffect } from "react";
 
-import { useLayoutEffect } from "react";
+// These fonts are loaded once and never change
+const SPECIAL_FONTS = [
+  { family: "QuranCommon", url: "/fonts/common/QuranCommon.woff2" },
+  { family: "surah-name-v2", url: "/fonts/common/surah-name-v2.woff2" },
+  { family: "surah-name-v3", url: "/fonts/common/surah-name-v3.woff2" },
+];
 
-export default function QpcFontStyleRegistry({
-  cssText,
-  preloadPages = [],
-}: {
-  cssText: string;
-  preloadPages?: number[];
-}) {
-  useLayoutEffect(() => {
-    const head = document.head;
+let specialFontsLoaded = false;
 
-    let styleTag = document.getElementById(
-      "qpc-page-fonts",
-    ) as HTMLStyleElement | null;
-    if (!styleTag) {
-      styleTag = document.createElement("style");
-      styleTag.id = "qpc-page-fonts";
-      head.appendChild(styleTag);
-    }
-    // Only append rules that aren't already registered
-    const existing = styleTag.textContent || "";
-    const newRules = cssText.split("\n").filter(rule => rule && !existing.includes(rule));
-    if (newRules.length > 0) {
-      styleTag.textContent += "\n" + newRules.join("\n");
-    }
+export default function SpecialFontLoader() {
+  useEffect(() => {
+    if (specialFontsLoaded) return;
+    specialFontsLoaded = true;
 
-    const preloadSet = new Set(preloadPages);
-    const existingPreloads = Array.from(
-      head.querySelectorAll('link[data-qpc-preload="true"]'),
-    );
-
-    for (const link of existingPreloads) {
-      const page = Number.parseInt(link.getAttribute("data-page") ?? "", 10);
-      if (!preloadSet.has(page)) {
-        link.remove();
-      }
-    }
-
-    for (const page of preloadSet) {
-      const preloadId = `qpc-preload-p${page}`;
-      if (head.querySelector(`#${preloadId}`)) {
-        continue;
-      }
-
-      const link = document.createElement("link");
-      link.id = preloadId;
-      link.rel = "preload";
-      link.as = "font";
-      link.type = "font/woff2";
-      link.crossOrigin = "anonymous";
-      link.href = `/fonts/qpc/p${page}.woff2`;
-      link.setAttribute("data-qpc-preload", "true");
-      link.setAttribute("data-page", String(page));
-      head.appendChild(link);
-    }
-  }, [cssText, preloadPages]);
+    SPECIAL_FONTS.forEach(({ family, url }) => {
+      if (document.fonts.check(`1em ${family}`)) return;
+      const face = new FontFace(family, `url('${url}') format('woff2')`);
+      face.load().then(loaded => {
+        document.fonts.add(loaded);
+      }).catch(() => {});
+    });
+  }, []);
 
   return null;
 }

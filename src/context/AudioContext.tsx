@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { updateUserPreferences } from "@/actions/user";
 import chapters from "../../public/data/chapters-tiny.json";
@@ -27,12 +27,7 @@ interface Translation {
   slug: string;
 }
 
-interface AudioContextType {
-  currentAyah: AyahId | null;
-  isPlaying: boolean;
-  isAutoplay: boolean;
-  reciterId: number;
-  reciters: Reciter[];
+interface AudioActionsType {
   playAyah: (surah: number, ayah: number, shouldPlay?: boolean, overrideReciterId?: number, isInternal?: boolean) => void;
   playUrl: (url: string, id: string, surah?: number, ayah?: number) => void;
   togglePlay: () => void;
@@ -41,32 +36,39 @@ interface AudioContextType {
   playPreviousAyah: () => void;
   setReciter: (id: number) => void;
   stopAudio: () => void;
-  activeId: string | null; // For highlighting in mushaf (e.g. "1:1")
-  translationId: number;
   setTranslationId: (id: number) => void;
-  translationText: string | null;
-  translations: Translation[];
-
-  // Repeat Feature
-  repeatMode: 'none' | 'single' | 'range';
   setRepeatMode: (mode: 'none' | 'single' | 'range') => void;
-  repeatCount: number;
   setRepeatCount: (count: number) => void;
-  repeatRange: { start: AyahId | null, end: AyahId | null };
   setRepeatRange: (range: { start: AyahId | null, end: AyahId | null }) => void;
-  rangeRepeatCount: number;
   setRangeRepeatCount: (count: number) => void;
+  setLanguage: (lang: 'en' | 'ur') => void;
+  setLastRead: (data: { pageNumber: number, surahName: string }) => void;
+  setIsTafseerVisible: (visible: boolean) => void;
+  reciters: Reciter[];
+  translations: Translation[];
+}
+
+interface AudioStateType {
+  currentAyah: AyahId | null;
+  isPlaying: boolean;
+  isAutoplay: boolean;
+  reciterId: number;
+  translationId: number;
+  activeId: string | null;
+  translationText: string | null;
+  repeatMode: 'none' | 'single' | 'range';
+  repeatCount: number;
+  repeatRange: { start: AyahId | null, end: AyahId | null };
+  rangeRepeatCount: number;
   currentRepeatIndex: number;
   rangeCycleIndex: number;
   language: 'en' | 'ur';
-  setLanguage: (lang: 'en' | 'ur') => void;
   lastRead: { pageNumber: number, surahName: string } | null;
-  setLastRead: (data: { pageNumber: number, surahName: string }) => void;
   isTafseerVisible: boolean;
-  setIsTafseerVisible: (visible: boolean) => void;
 }
 
-const AudioContext = createContext<AudioContextType | undefined>(undefined);
+const AudioActionsContext = createContext<AudioActionsType | undefined>(undefined);
+const AudioStateContext = createContext<AudioStateType | undefined>(undefined);
 
 export const RECITERS: Reciter[] = [
   { id: 9, name: "Mohamed Siddiq al-Minshawi", style: "Murattal", slug: "minshawi-murattal" },
@@ -181,7 +183,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedLang = localStorage.getItem('language') || localStorage.getItem('app_language');
       const savedReciter = localStorage.getItem('preferred_qari');
       const savedTranslation = localStorage.getItem('preferred_translation');
-      const savedRead = localStorage.getItem('quran_assistant_last_read');
+      const savedRead = localStorage.getItem('last_opened_page');
       
       if (savedLang === 'ur' || savedLang === 'en') setLanguageState(savedLang);
       
@@ -586,54 +588,59 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     syncPreferences({ last_opened_page: lastReadData });
   }, [syncPreferences]);
 
+  const actionsValue = useMemo(() => ({
+    playAyah, playUrl, togglePlay, toggleAutoplay,
+    playNextAyah, playPreviousAyah, setReciter, stopAudio,
+    setTranslationId: handleSetTranslationId,
+    setRepeatMode: handleSetRepeatMode,
+    setRepeatCount, setRepeatRange, setRangeRepeatCount,
+    setLanguage, setLastRead: handleSetLastRead,
+    setIsTafseerVisible,
+    reciters: RECITERS,
+    translations: TRANSLATIONS,
+  }), [
+    playAyah, playUrl, togglePlay, toggleAutoplay,
+    playNextAyah, playPreviousAyah, setReciter, stopAudio,
+    handleSetTranslationId, handleSetRepeatMode,
+    setLanguage, handleSetLastRead,
+  ]);
+
+  const stateValue = useMemo(() => ({
+    currentAyah, isPlaying, isAutoplay, reciterId,
+    translationId, activeId, translationText,
+    repeatMode, repeatCount, repeatRange, rangeRepeatCount,
+    currentRepeatIndex, rangeCycleIndex,
+    language, lastRead, isTafseerVisible,
+  }), [
+    currentAyah, isPlaying, isAutoplay, reciterId,
+    translationId, activeId, translationText,
+    repeatMode, repeatCount, repeatRange, rangeRepeatCount,
+    currentRepeatIndex, rangeCycleIndex,
+    language, lastRead, isTafseerVisible,
+  ]);
+
   return (
-    <AudioContext.Provider
-      value={{
-        currentAyah,
-        isPlaying,
-        isAutoplay,
-        reciterId,
-        reciters: RECITERS,
-        playAyah,
-        playUrl,
-        togglePlay,
-        toggleAutoplay,
-        playNextAyah,
-        playPreviousAyah,
-        setReciter,
-        stopAudio,
-        activeId,
-        translationId,
-        setTranslationId: handleSetTranslationId,
-        translationText,
-        translations: TRANSLATIONS,
-        repeatMode,
-        setRepeatMode: handleSetRepeatMode,
-        repeatCount,
-        setRepeatCount,
-        repeatRange,
-        setRepeatRange,
-        rangeRepeatCount,
-        setRangeRepeatCount,
-        currentRepeatIndex,
-        rangeCycleIndex,
-        language,
-        setLanguage,
-        lastRead,
-        setLastRead: handleSetLastRead,
-        isTafseerVisible,
-        setIsTafseerVisible,
-      }}
-    >
-      {children}
-    </AudioContext.Provider>
+    <AudioActionsContext.Provider value={actionsValue}>
+      <AudioStateContext.Provider value={stateValue}>
+        {children}
+      </AudioStateContext.Provider>
+    </AudioActionsContext.Provider>
   );
 };
 
-export const useAudioContext = () => {
-  const context = useContext(AudioContext);
-  if (context === undefined) {
-    throw new Error("useAudioContext must be used within an AudioProvider");
-  }
+export const useAudioActions = () => {
+  const context = useContext(AudioActionsContext);
+  if (!context) throw new Error("useAudioActions must be used within AudioProvider");
   return context;
 };
+
+export const useAudioState = () => {
+  const context = useContext(AudioStateContext);
+  if (!context) throw new Error("useAudioState must be used within AudioProvider");
+  return context;
+};
+
+export const useAudioContext = () => ({
+  ...useAudioActions(),
+  ...useAudioState(),
+});
